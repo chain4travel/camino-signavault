@@ -1,0 +1,52 @@
+version: '3.9'
+
+volumes:
+  mysql-data:
+    name: signavault_mysql
+
+networks:
+     signavault_services:
+       name: signavault_services
+
+services:
+
+  mysql:
+    container_name: signavault-mysql
+    image: "mysql:8.0.32"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./../my.cnf:/etc/mysql/my.cnf
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: signavault
+    restart: on-failure
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-ppassword", "--silent"]
+      interval: 3s
+      timeout: 10s
+      retries: 10
+      start_period: 3s
+    networks:
+      - signavault_services
+
+  migrate:
+    container_name: signavault-migrate
+    image: "migrate/migrate:v4.15.2"
+    volumes:
+      - ../../db/migrations:/migrations
+    depends_on:
+#      - mysql
+      mysql:
+        condition: service_healthy
+    entrypoint: ["/bin/sh"]
+#    command: |
+#      -c 'while ! migrate -path=/migrations/ -database "mysql://root:password@tcp(mysql:3306)/magellan" up; do
+#        sleep 1
+#      done'
+    command: |
+      -c 'migrate -path=/migrations/ -database "mysql://root:password@tcp(mysql:3306)/signavault" up 2'
+    restart: on-failure
+    networks:
+      - signavault_services
