@@ -1,13 +1,16 @@
 package main
 
 import (
-	"github.com/chain4travel/camino-signavault/handlers"
+	"github.com/chain4travel/camino-signavault/handler"
 	"github.com/gin-gonic/gin"
 	"log"
 )
 
 func main() {
+	startRouter()
+}
 
+func startRouter() {
 	//gin.SetMode(gin.DebugMode)
 	router := gin.Default()
 	err := router.SetTrustedProxies(nil)
@@ -16,15 +19,14 @@ func main() {
 	}
 	api := router.Group("/v1")
 
-	handler := handlers.NewMultisigHandler()
+	h := handler.NewMultisigHandler()
 
-	api.GET("", handler.GetAllMultisigTx)
-	api.GET("/:id", handler.GetMultisigTx)
-	api.POST("", handler.CreateMultisigTx)
-	api.PUT("/:id", handler.UpdateMultisigTx)
+	api.GET("", h.GetAllMultisigTx)
+	api.GET("/:alias", h.GetMultisigTx)
+	api.POST("", h.CreateMultisigTx)
+	api.PUT("/:alias", h.UpdateMultisigTx)
 
 	log.Println("Listing for requests at http://localhost:9000/v1")
 	// listen and serve on 0.0.0.0:9000 (for windows "localhost:9000")
 	router.Run(":9000")
-
 }
