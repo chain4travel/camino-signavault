@@ -26,7 +26,10 @@ func startRouter() {
 	api.POST("", h.CreateMultisigTx)
 	api.PUT("/:alias", h.UpdateMultisigTx)
 
-	log.Println("Listing for requests at http://localhost:9000/v1")
+	log.Println("Listening for requests at http://localhost:9000/v1")
 	// listen and serve on 0.0.0.0:9000 (for windows "localhost:9000")
-	router.Run(":9000")
+	err = router.Run(":9000")
+	if err != nil {
+		log.Fatal(err)
+	}
 }

@@ -1,8 +1,8 @@
 package db
 
 import (
+	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/gocraft/dbr/v2"
 	"sync"
 	"time"
 )
@@ -10,7 +10,7 @@ import (
 var lock = &sync.Mutex{}
 
 type Db struct {
-	*dbr.Connection
+	*sql.DB
 }
 
 var dbInstance *Db
@@ -27,8 +27,9 @@ func GetInstance() *Db {
 	return dbInstance
 }
 
-func initConnection() *dbr.Connection {
-	conn, err := dbr.Open("mysql", "root:password@tcp(localhost)/signavault", nil)
+func initConnection() *sql.DB {
+	conn, err := sql.Open("mysql", "root:password@tcp(127.0.0.1:3306)/signavault")
+
 	conn.SetConnMaxLifetime(time.Minute * 3)
 	conn.SetMaxOpenConns(10)
 	conn.SetMaxIdleConns(10)

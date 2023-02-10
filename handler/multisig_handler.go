@@ -15,9 +15,14 @@ func NewMultisigHandler() *MultisigHandler {
 }
 
 func (h *MultisigHandler) GetAllMultisigTx(ctx *gin.Context) {
-	ctx.JSON(200, gin.H{
-		"message": "GetAllMultisigTx",
-	})
+	multisigTx, err := h.MultisigSvc.GetAllMultisigTx()
+	if err != nil {
+		ctx.JSON(400, gin.H{
+			"message": "Error getting all MultisigTx",
+			"error":   err.Error(),
+		})
+	}
+	ctx.JSON(200, multisigTx)
 }
 func (h *MultisigHandler) GetMultisigTx(ctx *gin.Context) {
 	alias := ctx.Param("alias")
@@ -30,6 +35,13 @@ func (h *MultisigHandler) GetMultisigTx(ctx *gin.Context) {
 		})
 	}
 
+	if multisigTx == nil {
+		ctx.JSON(404, gin.H{
+			"message": "MultisigTx not found for alias " + alias,
+			"error":   "Not Found",
+		})
+		return
+	}
 	ctx.JSON(200, multisigTx)
 }
 
