@@ -6,8 +6,7 @@ CREATE TABLE multisig_tx
     unsigned_tx    VARCHAR(255) NOT NULL,
     transaction_id CHAR(51)     NULL,
     created_at     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    CONSTRAINT uc_multisig_tx_alias UNIQUE (alias)
+    PRIMARY KEY (id)
 );
 
 CREATE INDEX idx_multisig_tx_alias ON multisig_tx (alias);
