@@ -2,20 +2,17 @@ package main
 
 import (
 	"github.com/chain4travel/camino-signavault/handler"
+	"github.com/chain4travel/camino-signavault/util"
 	"github.com/gin-gonic/gin"
 	"log"
 )
 
 func main() {
-	readConfig()
-	startRouter()
+	config := util.GetInstance()
+	startRouter(config)
 }
 
-func readConfig() {
-
-}
-
-func startRouter() {
+func startRouter(cfg *util.Config) {
 	//gin.SetMode(gin.DebugMode)
 	router := gin.Default()
 	err := router.SetTrustedProxies(nil)
@@ -32,9 +29,7 @@ func startRouter() {
 	api.POST("/multisig", h.CreateMultisigTx)
 	api.POST("/multisig/:alias/:id", h.AddMultisigTxSigner)
 
-	log.Println("Listening for requests at http://localhost:9000/v1/multisig")
-	// listen and serve on 0.0.0.0:9000 (for windows "localhost:9000")
-	err = router.Run(":9000")
+	err = router.Run(cfg.ListenerAddress)
 	if err != nil {
 		log.Fatal(err)
 	}

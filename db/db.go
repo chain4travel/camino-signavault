@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"github.com/chain4travel/camino-signavault/util"
 	_ "github.com/go-sql-driver/mysql"
 	"sync"
 	"time"
@@ -28,7 +29,8 @@ func GetInstance() *Db {
 }
 
 func initConnection() *sql.DB {
-	conn, err := sql.Open("mysql", "root:password@tcp(127.0.0.1:3306)/signavault")
+	config := util.GetInstance()
+	conn, err := sql.Open(config.Database.Type, config.Database.Dsn)
 
 	conn.SetConnMaxLifetime(time.Minute * 3)
 	conn.SetMaxOpenConns(10)

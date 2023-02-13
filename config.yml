@@ -1,0 +1,4 @@
+listenerAddress: ":9000"
+database:
+  dsn: "root:password@tcp(127.0.0.1:3306)/signavault"
+  type: "mysql"
