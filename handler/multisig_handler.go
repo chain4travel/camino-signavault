@@ -102,3 +102,36 @@ func (h *MultisigHandler) UpdateMultisigTx(ctx *gin.Context) {
 		"error":   "Not implemented",
 	})
 }
+
+func (h *MultisigHandler) AddMultisigTxSigner(context *gin.Context) {
+	alias := context.Param("alias")
+	id, err := strconv.Atoi(context.Param("id"))
+	if err != nil {
+		context.JSON(400, gin.H{
+			"message": "Error parsing id " + context.Param("id") + " to integer",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	var signer *model.MultisigTxSigner
+	err = context.BindJSON(&signer)
+	if err != nil {
+		context.JSON(400, gin.H{
+			"message": "Error parsing signer from JSON",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	_, err = h.MultisigSvc.AddMultisigTxSigner(id, signer)
+	if err != nil {
+		context.JSON(400, gin.H{
+			"message": fmt.Sprintf("Error adding signer %s to multisig transaction with id %d for alias %s", signer.Address, id, alias),
+			"error":   err.Error(),
+		})
+		return
+	}
+	multisigAlias, _ := h.MultisigSvc.GetMultisigTx(alias, id)
+	context.JSON(200, multisigAlias)
+}

@@ -30,7 +30,7 @@ func startRouter() {
 	api.GET("/multisig/:alias", h.GetAllMultisigTxForAlias)
 	api.GET("/multisig/:alias/:id", h.GetMultisigTx)
 	api.POST("/multisig", h.CreateMultisigTx)
-	api.PUT("/multisig/:alias", h.UpdateMultisigTx)
+	api.POST("/multisig/:alias/:id", h.AddMultisigTxSigner)
 
 	log.Println("Listening for requests at http://localhost:9000/v1/multisig")
 	// listen and serve on 0.0.0.0:9000 (for windows "localhost:9000")

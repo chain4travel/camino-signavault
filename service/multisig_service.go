@@ -170,3 +170,32 @@ func (s *MultisigService) doGetMultisigTx(alias string, id int) (*[]model.Multis
 	}
 	return &result, nil
 }
+
+func (s *MultisigService) AddMultisigTxSigner(id int, signer *model.MultisigTxSigner) (int64, error) {
+	tx, err := db.GetInstance().Begin()
+	if err != nil {
+		return 0, err
+	}
+	defer func(tx *sql.Tx) {
+		err := tx.Rollback()
+		if err != nil {
+			log.Print(err)
+		}
+	}(tx)
+
+	stmt, err := tx.Prepare("INSERT INTO multisig_tx_signers (multisig_tx_id, address, signature) VALUES (?, ?, ?)")
+	if err != nil {
+		return 0, err
+	}
+	res, err := stmt.Exec(id, signer.Address, signer.Signature)
+	if err != nil {
+		return 0, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return 0, err
+	}
+
+	return res.LastInsertId()
+}
