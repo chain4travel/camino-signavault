@@ -55,12 +55,25 @@ func (s *MultisigService) CreateMultisigTx(multisigTx *model.MultisigTx) (int64,
 
 	return txId, nil
 }
+
 func (s *MultisigService) GetAllMultisigTx() (*[]model.MultisigTx, error) {
-	return s.doGetMultisigTx("")
+	return s.doGetMultisigTx("", -1)
 }
 
-func (s *MultisigService) GetMultisigTx(alias string) (*model.MultisigTx, error) {
-	tx, err := s.doGetMultisigTx(alias)
+func (s *MultisigService) GetAllMultisigTxForAlias(alias string) (*[]model.MultisigTx, error) {
+	tx, err := s.doGetMultisigTx(alias, -1)
+
+	if err != nil {
+		return nil, err
+	}
+	if len(*tx) <= 0 {
+		return nil, nil
+	}
+	return tx, nil
+}
+
+func (s *MultisigService) GetMultisigTx(alias string, id int) (*model.MultisigTx, error) {
+	tx, err := s.doGetMultisigTx(alias, id)
 
 	if err != nil {
 		return nil, err
@@ -72,7 +85,7 @@ func (s *MultisigService) GetMultisigTx(alias string) (*model.MultisigTx, error)
 	return &(*tx)[0], nil
 }
 
-func (s *MultisigService) doGetMultisigTx(alias string) (*[]model.MultisigTx, error) {
+func (s *MultisigService) doGetMultisigTx(alias string, id int) (*[]model.MultisigTx, error) {
 	var err error
 
 	query := "SELECT tx.id, " +
@@ -86,10 +99,10 @@ func (s *MultisigService) doGetMultisigTx(alias string) (*[]model.MultisigTx, er
 		"signers.signature " +
 		"FROM multisig_tx AS tx " +
 		"LEFT JOIN multisig_tx_signers AS signers ON tx.id = signers.multisig_tx_id " +
-		"WHERE tx.alias=? OR ?=''" +
+		"WHERE (tx.alias=? OR ?='') AND (tx.id=? OR ?=-1) " +
 		"ORDER BY tx.created_at ASC"
 
-	rows, err := db.GetInstance().Query(query, alias, alias)
+	rows, err := db.GetInstance().Query(query, alias, alias, id, id)
 	if err != nil {
 		return nil, err
 	}
