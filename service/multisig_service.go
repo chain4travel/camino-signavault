@@ -8,32 +8,34 @@ import (
 )
 
 type MultisigService struct {
+	db db.Db
 }
 
-func NewMultisigService() *MultisigService {
-	return &MultisigService{}
+func NewMultisigService(db db.Db) *MultisigService {
+	return &MultisigService{
+		db: db,
+	}
 }
 
 func (s *MultisigService) CreateMultisigTx(multisigTx *model.MultisigTx) (int64, error) {
 	var err error
 
-	tx, err := db.GetInstance().Begin()
+	tx, err := s.db.Begin()
 	if err != nil {
 		return 0, err
 	}
-	defer func(tx *sql.Tx) {
-		err := tx.Rollback()
-		if err != nil {
-			log.Print(err)
-		}
-	}(tx)
 
 	stmt, err := tx.Prepare("INSERT INTO multisig_tx (alias, threshold, transaction_id, unsigned_tx) VALUES (?, ?, ?, ?)")
 	if err != nil {
 		return 0, err
 	}
 	res, err := stmt.Exec(multisigTx.Alias, multisigTx.Threshold, multisigTx.TransactionId, multisigTx.UnsignedTx)
+
 	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			log.Printf("Execute statement failed: %v, unable to back: %v", err, rollbackErr)
+		}
+		log.Print(err)
 		return 0, err
 	}
 	txId, _ := res.LastInsertId()
@@ -45,11 +47,16 @@ func (s *MultisigService) CreateMultisigTx(multisigTx *model.MultisigTx) (int64,
 		}
 		_, err = stmt.Exec(txId, signer.Address, signer.Signature)
 		if err != nil {
+			if rollbackErr := tx.Rollback(); rollbackErr != nil {
+				log.Printf("Execute statement failed: %v, unable to back: %v", err, rollbackErr)
+			}
+			log.Print(err)
 			return 0, err
 		}
 	}
 	err = tx.Commit()
 	if err != nil {
+		log.Printf("Commit failed: %v", err)
 		return 0, err
 	}
 
@@ -102,7 +109,8 @@ func (s *MultisigService) doGetMultisigTx(alias string, id int) (*[]model.Multis
 		"WHERE (tx.alias=? OR ?='') AND (tx.id=? OR ?=-1) " +
 		"ORDER BY tx.created_at ASC"
 
-	rows, err := db.GetInstance().Query(query, alias, alias, id, id)
+	//rows, err := db.GetInstance().Query(query, alias, alias, id, id)
+	rows, err := s.db.Query(query, alias, alias, id, id)
 	if err != nil {
 		return nil, err
 	}
@@ -172,16 +180,10 @@ func (s *MultisigService) doGetMultisigTx(alias string, id int) (*[]model.Multis
 }
 
 func (s *MultisigService) AddMultisigTxSigner(id int, signer *model.MultisigTxSigner) (int64, error) {
-	tx, err := db.GetInstance().Begin()
+	tx, err := s.db.Begin()
 	if err != nil {
 		return 0, err
 	}
-	defer func(tx *sql.Tx) {
-		err := tx.Rollback()
-		if err != nil {
-			log.Print(err)
-		}
-	}(tx)
 
 	stmt, err := tx.Prepare("INSERT INTO multisig_tx_signers (multisig_tx_id, address, signature) VALUES (?, ?, ?)")
 	if err != nil {
@@ -189,11 +191,16 @@ func (s *MultisigService) AddMultisigTxSigner(id int, signer *model.MultisigTxSi
 	}
 	res, err := stmt.Exec(id, signer.Address, signer.Signature)
 	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			log.Printf("Execute statement failed: %v, unable to back: %v", err, rollbackErr)
+		}
+		log.Print(err)
 		return 0, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
+		log.Printf("Commit failed: %v", err)
 		return 0, err
 	}
 

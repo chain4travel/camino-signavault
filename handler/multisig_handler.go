@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"github.com/chain4travel/camino-signavault/db"
 	"github.com/chain4travel/camino-signavault/model"
 	"github.com/chain4travel/camino-signavault/service"
 	"github.com/gin-gonic/gin"
@@ -13,7 +14,9 @@ type MultisigHandler struct {
 }
 
 func NewMultisigHandler() *MultisigHandler {
-	return &MultisigHandler{MultisigSvc: service.NewMultisigService()}
+	return &MultisigHandler{
+		MultisigSvc: service.NewMultisigService(*db.GetInstance()),
+	}
 }
 
 func (h *MultisigHandler) GetAllMultisigTx(ctx *gin.Context) {

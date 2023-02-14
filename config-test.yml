@@ -1,0 +1,3 @@
+database:
+  dsn: "root:password@tcp(127.0.0.1:3306)/test"
+  type: "mysql"
