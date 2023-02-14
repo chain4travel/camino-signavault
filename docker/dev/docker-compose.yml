@@ -40,10 +40,6 @@ services:
       mysql:
         condition: service_healthy
     entrypoint: ["/bin/sh"]
-#    command: |
-#      -c 'while ! migrate -path=/migrations/ -database "mysql://root:password@tcp(mysql:3306)/magellan" up; do
-#        sleep 1
-#      done'
     command: |
       -c 'migrate -path=/migrations/ -database "mysql://root:password@tcp(mysql:3306)/signavault" up'
     restart: on-failure

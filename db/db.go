@@ -31,7 +31,6 @@ func GetInstance() *Db {
 func initConnection() *sql.DB {
 	config := util.GetInstance()
 	conn, err := sql.Open(config.Database.Type, config.Database.Dsn)
-
 	conn.SetConnMaxLifetime(time.Minute * 3)
 	conn.SetMaxOpenConns(10)
 	conn.SetMaxIdleConns(10)
