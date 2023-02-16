@@ -74,7 +74,7 @@ func (s *MultisigService) GetAllMultisigTxForAlias(alias string) (*[]model.Multi
 		return nil, err
 	}
 	if len(*tx) <= 0 {
-		return nil, nil
+		return &[]model.MultisigTx{}, nil
 	}
 	return tx, nil
 }
