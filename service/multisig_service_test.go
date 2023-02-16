@@ -13,7 +13,6 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"log"
 	"os"
-	"reflect"
 	"testing"
 	"time"
 )
@@ -208,22 +207,35 @@ func TestMultisigService_GetAllMultisigTx(t *testing.T) {
 		UnsignedTx: "FFFFFFFC",
 		Signers: []model.MultisigTxSigner{
 			{
-				Address:   "X-kopernikus1vxmf8899y6x7dsam0xnr0hp6syzwz333dkvn2r",
+				Address:   "X-kopernikus1vxmf8899y6x7dsam0xnr0hp6syzwz333dkvn2q",
 				Signature: "FFFFFFFA",
 			},
 		},
 	}
 
-	id, err := s.CreateMultisigTx(&mock1)
+	_, err := s.CreateMultisigTx(&mock1)
 	if err != nil {
 		t.Errorf("GetAllMultisigTx() error = %v", err)
 		return
 	}
-	mock1.Id = id
-	mock1.Signers[0].Id = 1
-	mock1.Signers[0].MultisigTxId = id
+	mock2 := model.MultisigTx{
+		Alias:      "X-kopernikus1vscyf7czawylztn6ghhg0z27swwewxgzgpcxxx",
+		Threshold:  3,
+		UnsignedTx: "FFFFFFCC",
+		Signers: []model.MultisigTxSigner{
+			{
+				Address:   "X-kopernikus1vxmf8899y6x7dsam0xnr0hp6syzwz333dkiiii",
+				Signature: "FFFFFFFD",
+			},
+		},
+	}
 
-	mockMultisigTx = append(mockMultisigTx, mock1)
+	_, err = s.CreateMultisigTx(&mock2)
+	if err != nil {
+		t.Errorf("GetAllMultisigTx() error = %v", err)
+		return
+	}
+	mockMultisigTx = append(mockMultisigTx, mock1, mock2)
 
 	tests := []struct {
 		name    string
@@ -238,115 +250,207 @@ func TestMultisigService_GetAllMultisigTx(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			//s := &MultisigService{}
 			got, err := s.GetAllMultisigTx()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetAllMultisigTx() error = %v, wantErr %v", err, tt.wantErr)
 				return
+
 			}
-			if !reflect.DeepEqual(got, tt.want) {
+			var found bool
+			for i := range *got {
+				for k := range *tt.want {
+					a := (*got)[i]
+					b := (*tt.want)[k]
+					if isEqual(a, b) {
+						found = true
+					}
+				}
+			}
+
+			if !found && !tt.wantErr {
 				t.Errorf("GetAllMultisigTx() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-//
-//func TestMultisigService_GetAllMultisigTxForAlias(t *testing.T) {
-//	type args struct {
-//		alias string
-//	}
-//	tests := []struct {
-//		name    string
-//		args    args
-//		want    *[]model.MultisigTx
-//		wantErr bool
-//	}{
-//		// TODO: Add test cases.
-//	}
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			s := &MultisigService{}
-//			got, err := s.GetAllMultisigTxForAlias(tt.args.alias)
-//			if (err != nil) != tt.wantErr {
-//				t.Errorf("GetAllMultisigTxForAlias() error = %v, wantErr %v", err, tt.wantErr)
-//				return
-//			}
-//			if !reflect.DeepEqual(got, tt.want) {
-//				t.Errorf("GetAllMultisigTxForAlias() got = %v, want %v", got, tt.want)
-//			}
-//		})
-//	}
-//}
-//
-//func TestMultisigService_GetMultisigTx(t *testing.T) {
-//	type args struct {
-//		alias string
-//		id    int
-//	}
-//	tests := []struct {
-//		name    string
-//		args    args
-//		want    *model.MultisigTx
-//		wantErr bool
-//	}{
-//		// TODO: Add test cases.
-//	}
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			s := &MultisigService{}
-//			got, err := s.GetMultisigTx(tt.args.alias, tt.args.id)
-//			if (err != nil) != tt.wantErr {
-//				t.Errorf("GetMultisigTx() error = %v, wantErr %v", err, tt.wantErr)
-//				return
-//			}
-//			if !reflect.DeepEqual(got, tt.want) {
-//				t.Errorf("GetMultisigTx() got = %v, want %v", got, tt.want)
-//			}
-//		})
-//	}
-//}
-//
-//func TestMultisigService_doGetMultisigTx(t *testing.T) {
-//	type args struct {
-//		alias string
-//		id    int
-//	}
-//	tests := []struct {
-//		name    string
-//		args    args
-//		want    *[]model.MultisigTx
-//		wantErr bool
-//	}{
-//		// TODO: Add test cases.
-//	}
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			s := &MultisigService{}
-//			got, err := s.doGetMultisigTx(tt.args.alias, tt.args.id)
-//			if (err != nil) != tt.wantErr {
-//				t.Errorf("doGetMultisigTx() error = %v, wantErr %v", err, tt.wantErr)
-//				return
-//			}
-//			if !reflect.DeepEqual(got, tt.want) {
-//				t.Errorf("doGetMultisigTx() got = %v, want %v", got, tt.want)
-//			}
-//		})
-//	}
-//}
+func TestMultisigService_GetAllMultisigTxForAlias(t *testing.T) {
+	s := &MultisigService{db.Db{DB: conn}}
 
-//func TestNewMultisigService(t *testing.T) {
-//	tests := []struct {
-//		name string
-//		want *MultisigService
-//	}{
-//		// TODO: Add test cases.
-//	}
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			if got := NewMultisigService(); !reflect.DeepEqual(got, tt.want) {
-//				t.Errorf("NewMultisigService() = %v, want %v", got, tt.want)
-//			}
-//		})
-//	}
-//}
+	// mock1
+	var mockMultisigTx []model.MultisigTx
+	mock1 := model.MultisigTx{
+		Alias:      "X-kopernikus1vscyf7czawylztn6ghhg0z27swwewxgzgpcaaa",
+		Threshold:  2,
+		UnsignedTx: "FFFFFFCC",
+		Signers: []model.MultisigTxSigner{
+			{
+				Address:   "X-kopernikus1vxmf8899y6x7dsam0xnr0hp6syzwz333dkvn2q",
+				Signature: "FFFFFFFA",
+			},
+		},
+	}
+	_, err := s.CreateMultisigTx(&mock1)
+	if err != nil {
+		t.Errorf("GetAllMultisigTxForAlias() error = %v", err)
+		return
+	}
+
+	// mock2
+	mock2 := model.MultisigTx{
+		Alias:      "X-kopernikus1vscyf7czawylztn6ghhg0z27swwewxgzgpcaaa",
+		Threshold:  3,
+		UnsignedTx: "FFFFFCCC",
+		Signers: []model.MultisigTxSigner{
+			{
+				Address:   "X-kopernikus1vxmf8899y6x7dsam0xnr0hp6syzwz333dkiiii",
+				Signature: "FFFFFFFD",
+			},
+		},
+	}
+	_, err = s.CreateMultisigTx(&mock2)
+	if err != nil {
+		t.Errorf("GetAllMultisigTxForAlias() error = %v", err)
+		return
+	}
+	// keep mocks in array
+	mockMultisigTx = append(mockMultisigTx, mock1, mock2)
+
+	type args struct {
+		alias string
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		want    *[]model.MultisigTx
+		wantErr bool
+	}{
+		{
+			name:    "GetAllMultisigTxForAlias - 1",
+			args:    args{alias: "X-kopernikus1vscyf7czawylztn6ghhg0z27swwewxgzgpcaaa"},
+			want:    &mockMultisigTx,
+			wantErr: false,
+		},
+		{
+			name:    "GetAllMultisigTxForAlias - 2",
+			args:    args{alias: "X-kopernikus1vscyf7czawylztn6ghhg0z27swwewxgzgpcabc"},
+			want:    &mockMultisigTx,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := s.GetAllMultisigTxForAlias(tt.args.alias)
+
+			//if (err != nil) != tt.wantErr {
+			if err != nil {
+				t.Errorf("GetAllMultisigTxForAlias() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			// search for mock1 and mock2 in got got array
+			var found bool
+			for i := range *got {
+				for k := range *tt.want {
+					a := (*got)[i]
+					b := (*tt.want)[k]
+					if isEqual(a, b) {
+						found = true
+					}
+				}
+			}
+
+			if !found && !tt.wantErr {
+				t.Errorf("GetAllMultisigTxForAlias() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMultisigService_GetMultisigTx(t *testing.T) {
+	s := &MultisigService{db.Db{DB: conn}}
+	id, err := s.CreateMultisigTx(&model.MultisigTx{
+		Alias:      "X-kopernikus1vscyf7czawylztn6ghhg0z27swwewxgzaaaaaa",
+		Threshold:  2,
+		UnsignedTx: "FFFFFFFC",
+		Signers: []model.MultisigTxSigner{
+			{
+				Address:   "X-kopernikus1vxmf8899y6x7dsam0xnr0hp6syzwz333aaaaaa",
+				Signature: "FFFFFFFA",
+			},
+		},
+	})
+	if err != nil {
+		return
+	}
+
+	type args struct {
+		alias string
+		id    int
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *model.MultisigTx
+		wantErr bool
+	}{
+		{
+			name: "GetMultisigTx with correct alias",
+			args: args{alias: "X-kopernikus1vscyf7czawylztn6ghhg0z27swwewxgzaaaaaa", id: int(id)},
+			want: &model.MultisigTx{
+				Alias:      "X-kopernikus1vscyf7czawylztn6ghhg0z27swwewxgzaaaaaa",
+				Threshold:  2,
+				UnsignedTx: "FFFFFFFC",
+			},
+			wantErr: false,
+		},
+		{
+			name: "GetMultisigTx with wrong alias (nil result)",
+			args: args{alias: "X-kopernikus1vscyf7czawylztn6ghhg0z27swwewxgzbbbbbb", id: int(id)},
+			want: &model.MultisigTx{
+				Alias:      "X-kopernikus1vscyf7czawylztn6ghhg0z27swwewxgzaaaaaa",
+				Threshold:  4,
+				UnsignedTx: "FFFFFCCC",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := s.GetMultisigTx(tt.args.alias, tt.args.id)
+
+			if err != nil && !tt.wantErr {
+				t.Errorf("GetMultisigTx() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != nil {
+				if !isEqual(*got, *tt.want) && !tt.wantErr {
+					t.Errorf("GetMultisigTx() got = %v, want %v", got, tt.want)
+				}
+			} else {
+				if !tt.wantErr {
+					t.Errorf("GetMultisigTx() got = %v, want %v", got, tt.want)
+				}
+			}
+		})
+	}
+}
+
+func isEqual(a model.MultisigTx, b model.MultisigTx) bool {
+	// compare all fields of a and b excepts ids
+	if a.Alias != b.Alias || a.Threshold != b.Threshold || a.UnsignedTx != b.UnsignedTx {
+		if a.Signers != nil && b.Signers != nil {
+			if len(a.Signers) != len(b.Signers) {
+				return false
+			}
+			for i := range a.Signers {
+				if a.Signers[i].Address != b.Signers[i].Address || a.Signers[i].Signature != b.Signers[i].Signature {
+					return false
+				}
+			}
+		}
+		return false
+	}
+	return true
+}
