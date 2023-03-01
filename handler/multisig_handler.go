@@ -6,7 +6,6 @@ import (
 	"github.com/chain4travel/camino-signavault/model"
 	"github.com/chain4travel/camino-signavault/service"
 	"github.com/gin-gonic/gin"
-	"strconv"
 )
 
 type MultisigHandler struct {
@@ -49,27 +48,19 @@ func (h *MultisigHandler) GetAllMultisigTxForAlias(ctx *gin.Context) {
 	ctx.JSON(200, multisigTx)
 }
 func (h *MultisigHandler) GetMultisigTx(ctx *gin.Context) {
-	alias := ctx.Param("alias")
-	id, err := strconv.Atoi(ctx.Param("id"))
-	if err != nil {
-		ctx.JSON(400, gin.H{
-			"message": "Error parsing id " + ctx.Param("id") + " to integer",
-			"error":   err.Error(),
-		})
-		return
-	}
+	id := ctx.Param("txId")
 
-	multisigTx, err := h.MultisigSvc.GetMultisigTx(alias, id)
+	multisigTx, err := h.MultisigSvc.GetMultisigTx(id)
 	if err != nil {
 		ctx.JSON(400, gin.H{
-			"message": fmt.Sprintf("Error getting multisig transaction with id %d for alias %s", id, alias),
+			"message": fmt.Sprintf("Error getting multisig transaction with id %s", id),
 			"error":   err.Error(),
 		})
 	}
 
 	if multisigTx == nil {
 		ctx.JSON(404, gin.H{
-			"message": fmt.Sprintf("Multisig transaction not found for alias %s and id %d ", alias, id),
+			"message": fmt.Sprintf("Multisig transaction not found for id %s", id),
 			"error":   "Not Found",
 		})
 		return
@@ -87,7 +78,7 @@ func (h *MultisigHandler) CreateMultisigTx(ctx *gin.Context) {
 		})
 	}
 
-	id, err := h.MultisigSvc.CreateMultisigTx(multisigTx)
+	response, err := h.MultisigSvc.CreateMultisigTx(multisigTx)
 	if err != nil {
 		ctx.JSON(400, gin.H{
 			"message": "Error inserting multisig transaction in database",
@@ -95,8 +86,7 @@ func (h *MultisigHandler) CreateMultisigTx(ctx *gin.Context) {
 		})
 		return
 	}
-	multisigTx.Id = id
-	ctx.JSON(200, *multisigTx)
+	ctx.JSON(200, *response)
 }
 
 func (h *MultisigHandler) UpdateMultisigTx(ctx *gin.Context) {
@@ -107,15 +97,8 @@ func (h *MultisigHandler) UpdateMultisigTx(ctx *gin.Context) {
 }
 
 func (h *MultisigHandler) AddMultisigTxSigner(context *gin.Context) {
-	alias := context.Param("alias")
-	id, err := strconv.Atoi(context.Param("id"))
-	if err != nil {
-		context.JSON(400, gin.H{
-			"message": "Error parsing id " + context.Param("id") + " to integer",
-			"error":   err.Error(),
-		})
-		return
-	}
+	var err error
+	txId := context.Param("txId")
 
 	var signer *model.MultisigTxSigner
 	err = context.BindJSON(&signer)
@@ -127,14 +110,14 @@ func (h *MultisigHandler) AddMultisigTxSigner(context *gin.Context) {
 		return
 	}
 
-	_, err = h.MultisigSvc.AddMultisigTxSigner(id, signer)
+	_, err = h.MultisigSvc.AddMultisigTxSigner(txId, signer)
 	if err != nil {
 		context.JSON(400, gin.H{
-			"message": fmt.Sprintf("Error adding signer %s to multisig transaction with id %d for alias %s", signer.Address, id, alias),
+			"message": fmt.Sprintf("Error adding signer %s to multisig transaction with id %d", signer.Address, txId),
 			"error":   err.Error(),
 		})
 		return
 	}
-	multisigAlias, _ := h.MultisigSvc.GetMultisigTx(alias, id)
+	multisigAlias, _ := h.MultisigSvc.GetMultisigTx(txId)
 	context.JSON(200, multisigAlias)
 }

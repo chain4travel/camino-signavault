@@ -17,58 +17,68 @@ func NewMultisigService(db db.Db) *MultisigService {
 	}
 }
 
-func (s *MultisigService) CreateMultisigTx(multisigTx *model.MultisigTx) (int64, error) {
+func (s *MultisigService) CreateMultisigTx(multisigTx *model.MultisigTx) (*model.MultisigTx, error) {
 	var err error
 
 	tx, err := s.db.Begin()
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	stmt, err := tx.Prepare("INSERT INTO multisig_tx (alias, threshold, transaction_id, unsigned_tx) VALUES (?, ?, ?, ?)")
+	stmt, err := tx.Prepare("INSERT INTO multisig_tx (alias, threshold, unsigned_tx) VALUES (?, ?, ?)")
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	res, err := stmt.Exec(multisigTx.Alias, multisigTx.Threshold, multisigTx.TransactionId, multisigTx.UnsignedTx)
+	res, err := stmt.Exec(multisigTx.Alias, multisigTx.Threshold, multisigTx.UnsignedTx)
 
 	if err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			log.Printf("Execute statement failed: %v, unable to back: %v", err, rollbackErr)
 		}
 		log.Print(err)
-		return 0, err
+		return nil, err
 	}
 	txId, _ := res.LastInsertId()
 
-	for _, signer := range multisigTx.Signers {
-		stmt, err := tx.Prepare("INSERT INTO multisig_tx_signers (multisig_tx_id, address, signature) VALUES (?, ?, ?)")
-		if err != nil {
-			return 0, err
+	for _, owner := range multisigTx.Owners {
+		isSigner := false
+		signature := ""
+		for _, signer := range multisigTx.Signers {
+			if owner.Address == signer.Address {
+				isSigner = true
+				signature = signer.Signature
+			}
 		}
-		_, err = stmt.Exec(txId, signer.Address, signer.Signature)
+
+		stmt, err := tx.Prepare("INSERT INTO multisig_tx_owners (multisig_tx_id, address, signature, is_signer) VALUES (?, ?, ?, ?)")
+		if err != nil {
+			return nil, err
+		}
+		_, err = stmt.Exec(txId, owner.Address, signature, isSigner)
 		if err != nil {
 			if rollbackErr := tx.Rollback(); rollbackErr != nil {
 				log.Printf("Execute statement failed: %v, unable to back: %v", err, rollbackErr)
 			}
 			log.Print(err)
-			return 0, err
+			return nil, err
 		}
+
 	}
 	err = tx.Commit()
 	if err != nil {
 		log.Printf("Commit failed: %v", err)
-		return 0, err
+		return nil, err
 	}
 
-	return txId, nil
+	return s.GetMultisigTx(multisigTx.UnsignedTx)
 }
 
 func (s *MultisigService) GetAllMultisigTx() (*[]model.MultisigTx, error) {
-	return s.doGetMultisigTx("", -1)
+	return s.doGetMultisigTx("", "")
 }
 
 func (s *MultisigService) GetAllMultisigTxForAlias(alias string) (*[]model.MultisigTx, error) {
-	tx, err := s.doGetMultisigTx(alias, -1)
+	tx, err := s.doGetMultisigTx(alias, "")
 
 	if err != nil {
 		return nil, err
@@ -79,8 +89,8 @@ func (s *MultisigService) GetAllMultisigTxForAlias(alias string) (*[]model.Multi
 	return tx, nil
 }
 
-func (s *MultisigService) GetMultisigTx(alias string, id int) (*model.MultisigTx, error) {
-	tx, err := s.doGetMultisigTx(alias, id)
+func (s *MultisigService) GetMultisigTx(txId string) (*model.MultisigTx, error) {
+	tx, err := s.doGetMultisigTx("", txId)
 
 	if err != nil {
 		return nil, err
@@ -92,7 +102,7 @@ func (s *MultisigService) GetMultisigTx(alias string, id int) (*model.MultisigTx
 	return &(*tx)[0], nil
 }
 
-func (s *MultisigService) doGetMultisigTx(alias string, id int) (*[]model.MultisigTx, error) {
+func (s *MultisigService) doGetMultisigTx(alias string, txId string) (*[]model.MultisigTx, error) {
 	var err error
 
 	query := "SELECT tx.id, " +
@@ -100,17 +110,17 @@ func (s *MultisigService) doGetMultisigTx(alias string, id int) (*[]model.Multis
 		"tx.threshold, " +
 		"tx.transaction_id, " +
 		"tx.unsigned_tx, " +
-		"signers.multisig_tx_id, " +
-		"signers.id, " +
-		"signers.address, " +
-		"signers.signature " +
+		"owners.multisig_tx_id, " +
+		"owners.id, " +
+		"owners.address, " +
+		"owners.signature, " +
+		"owners.is_signer " +
 		"FROM multisig_tx AS tx " +
-		"LEFT JOIN multisig_tx_signers AS signers ON tx.id = signers.multisig_tx_id " +
-		"WHERE (tx.alias=? OR ?='') AND (tx.id=? OR ?=-1) " +
+		"LEFT JOIN multisig_tx_owners AS owners ON tx.id = owners.multisig_tx_id " +
+		"WHERE (tx.alias=? OR ?='') AND (tx.unsigned_tx=? OR ?='') AND tx.transaction_id IS NULL " +
 		"ORDER BY tx.created_at ASC"
 
-	//rows, err := db.GetInstance().Query(query, alias, alias, id, id)
-	rows, err := s.db.Query(query, alias, alias, id, id)
+	rows, err := s.db.Query(query, alias, alias, txId, txId)
 	if err != nil {
 		return nil, err
 	}
@@ -126,18 +136,19 @@ func (s *MultisigService) doGetMultisigTx(alias string, id int) (*[]model.Multis
 
 	for rows.Next() {
 		var (
-			txId               int
-			txAlias            string
-			txThreshold        int
-			txTransactionId    string
-			txUnsignedTx       string
-			signerMultisigTxId int
-			signerId           int
-			signerAddress      string
-			signerSignature    string
+			txId              int
+			txAlias           string
+			txThreshold       int
+			txTransactionId   sql.NullString
+			txUnsignedTx      string
+			ownerMultisigTxId sql.NullInt64
+			ownerId           sql.NullInt64
+			ownerAddress      sql.NullString
+			ownerSignature    sql.NullString
+			ownerIsSigner     sql.NullBool
 		)
 
-		err := rows.Scan(&txId, &txAlias, &txThreshold, &txTransactionId, &txUnsignedTx, &signerMultisigTxId, &signerId, &signerAddress, &signerSignature)
+		err := rows.Scan(&txId, &txAlias, &txThreshold, &txTransactionId, &txUnsignedTx, &ownerMultisigTxId, &ownerId, &ownerAddress, &ownerSignature, &ownerIsSigner)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -149,22 +160,41 @@ func (s *MultisigService) doGetMultisigTx(alias string, id int) (*[]model.Multis
 				Id:            int64(txId),
 				Alias:         txAlias,
 				Threshold:     txThreshold,
-				TransactionId: txTransactionId,
+				TransactionId: txTransactionId.String,
 				UnsignedTx:    txUnsignedTx,
 			}
 
 		}
+
+		owners := tx.Owners
+		if owners == nil {
+			owners = []model.MultisigTxOwner{}
+		}
 		signers := tx.Signers
-		if (signers) == nil {
+		if signers == nil {
 			signers = []model.MultisigTxSigner{}
 		}
-		signers = append(signers, model.MultisigTxSigner{
-			Id:           int64(signerId),
-			MultisigTxId: int64(signerMultisigTxId),
-			Address:      signerAddress,
-			Signature:    signerSignature,
-		})
+
+		// add owner
+		owner := model.MultisigTxOwner{
+			Id:           ownerId.Int64,
+			MultisigTxId: ownerMultisigTxId.Int64,
+			Address:      ownerAddress.String,
+		}
+		owners = append(owners, owner)
+
+		// add signer
+		if ownerIsSigner.Valid && ownerIsSigner.Bool {
+			signer := model.MultisigTxSigner{
+				MultisigTxOwner: owner,
+				Signature:       ownerSignature.String,
+			}
+			signers = append(signers, signer)
+		}
+
+		tx.Owners = owners
 		tx.Signers = signers
+
 		multiSigTx[txId] = tx
 
 	}
@@ -179,17 +209,22 @@ func (s *MultisigService) doGetMultisigTx(alias string, id int) (*[]model.Multis
 	return &result, nil
 }
 
-func (s *MultisigService) AddMultisigTxSigner(id int, signer *model.MultisigTxSigner) (int64, error) {
+func (s *MultisigService) AddMultisigTxSigner(txId string, signer *model.MultisigTxSigner) (int64, error) {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return 0, err
 	}
 
-	stmt, err := tx.Prepare("INSERT INTO multisig_tx_signers (multisig_tx_id, address, signature) VALUES (?, ?, ?)")
+	multisigTx, err := s.GetMultisigTx(txId)
 	if err != nil {
 		return 0, err
 	}
-	res, err := stmt.Exec(id, signer.Address, signer.Signature)
+
+	stmt, err := tx.Prepare("INSERT INTO multisig_tx_owners (multisig_tx_id, address, signature, is_signer) VALUES (?, ?, ?, ?)")
+	if err != nil {
+		return 0, err
+	}
+	res, err := stmt.Exec(multisigTx.Id, signer.Address, signer.Signature, true)
 	if err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			log.Printf("Execute statement failed: %v, unable to back: %v", err, rollbackErr)
