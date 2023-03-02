@@ -2,6 +2,7 @@ package service
 
 import (
 	"database/sql"
+	"errors"
 	"github.com/chain4travel/camino-signavault/db"
 	"github.com/chain4travel/camino-signavault/model"
 	"log"
@@ -20,6 +21,12 @@ func NewMultisigService(db db.Db) *MultisigService {
 func (s *MultisigService) CreateMultisigTx(multisigTx *model.MultisigTx) (*model.MultisigTx, error) {
 	var err error
 
+	// check signers count is less than threshold
+	signers := multisigTx.Signers
+	if len(signers) >= multisigTx.Threshold {
+		return nil, errors.New("signer count is more than threshold")
+	}
+
 	tx, err := s.db.Begin()
 	if err != nil {
 		return nil, err
@@ -33,7 +40,7 @@ func (s *MultisigService) CreateMultisigTx(multisigTx *model.MultisigTx) (*model
 
 	if err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			log.Printf("Execute statement failed: %v, unable to back: %v", err, rollbackErr)
+			log.Printf("Execute statement failed: %v, unable to rollback: %v", err, rollbackErr)
 		}
 		log.Print(err)
 		return nil, err
@@ -46,7 +53,15 @@ func (s *MultisigService) CreateMultisigTx(multisigTx *model.MultisigTx) (*model
 		for _, signer := range multisigTx.Signers {
 			if owner.Address == signer.Address {
 				isSigner = true
+				// check if signature is not empty
+				if len(signer.Signature) == 0 {
+					if rollbackErr := tx.Rollback(); rollbackErr != nil {
+						log.Printf("Execute statement failed: %v, unable to rollback: %v", err, rollbackErr)
+					}
+					return nil, errors.New("signer signature is empty")
+				}
 				signature = signer.Signature
+				break
 			}
 		}
 
@@ -57,7 +72,7 @@ func (s *MultisigService) CreateMultisigTx(multisigTx *model.MultisigTx) (*model
 		_, err = stmt.Exec(txId, owner.Address, signature, isSigner)
 		if err != nil {
 			if rollbackErr := tx.Rollback(); rollbackErr != nil {
-				log.Printf("Execute statement failed: %v, unable to back: %v", err, rollbackErr)
+				log.Printf("Execute statement failed: %v, unable to rollback: %v", err, rollbackErr)
 			}
 			log.Print(err)
 			return nil, err
@@ -71,6 +86,39 @@ func (s *MultisigService) CreateMultisigTx(multisigTx *model.MultisigTx) (*model
 	}
 
 	return s.GetMultisigTx(multisigTx.UnsignedTx)
+}
+
+func (s *MultisigService) UpdateMultisigTx(multisigTx *model.MultisigTx) (bool, error) {
+
+	if multisig, _ := s.GetMultisigTx(multisigTx.UnsignedTx); multisig == nil {
+		return false, errors.New("no pending multisig tx found")
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return false, err
+	}
+
+	stmt, err := tx.Prepare("UPDATE multisig_tx SET transaction_id = ? WHERE unsigned_tx = ? AND transaction_id IS NULL")
+	if err != nil {
+		return false, err
+	}
+	_, err = stmt.Exec(multisigTx.TransactionId, multisigTx.UnsignedTx)
+	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			log.Printf("Execute statement failed: %v, unable to rollback: %v", err, rollbackErr)
+		}
+		log.Print(err)
+		return false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		log.Printf("Commit failed: %v", err)
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (s *MultisigService) GetAllMultisigTx() (*[]model.MultisigTx, error) {
@@ -100,6 +148,54 @@ func (s *MultisigService) GetMultisigTx(txId string) (*model.MultisigTx, error) 
 	}
 
 	return &(*tx)[0], nil
+}
+
+func (s *MultisigService) AddMultisigTxSigner(txId string, signer *model.MultisigTxSigner) (*model.MultisigTx, error) {
+	multisigTx, err := s.GetMultisigTx(txId)
+	if err != nil {
+		return nil, err
+	}
+
+	// check if signer signature or address is empty
+	if len(signer.Address) == 0 || len(signer.Signature) == 0 {
+		return nil, errors.New("signer address or signature is empty")
+	}
+
+	if !s.isOwner(multisigTx, signer.Address) {
+		return nil, errors.New("signer is not owner")
+	}
+
+	// check if signer count is more than threshold
+	signers := multisigTx.Signers
+	if len(signers) >= multisigTx.Threshold {
+		return nil, errors.New("signer count is more than threshold")
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	stmt, err := tx.Prepare("UPDATE multisig_tx_owners SET signature = ?, is_signer = ? WHERE multisig_tx_id = ? AND address = ?")
+	if err != nil {
+		return nil, err
+	}
+	_, err = stmt.Exec(signer.Signature, true, multisigTx.Id, signer.Address)
+	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			log.Printf("Execute statement failed: %v, unable to rollback: %v", err, rollbackErr)
+		}
+		log.Print(err)
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		log.Printf("Commit failed: %v", err)
+		return nil, err
+	}
+
+	return s.GetMultisigTx(txId)
 }
 
 func (s *MultisigService) doGetMultisigTx(alias string, txId string) (*[]model.MultisigTx, error) {
@@ -163,7 +259,6 @@ func (s *MultisigService) doGetMultisigTx(alias string, txId string) (*[]model.M
 				TransactionId: txTransactionId.String,
 				UnsignedTx:    txUnsignedTx,
 			}
-
 		}
 
 		owners := tx.Owners
@@ -209,35 +304,11 @@ func (s *MultisigService) doGetMultisigTx(alias string, txId string) (*[]model.M
 	return &result, nil
 }
 
-func (s *MultisigService) AddMultisigTxSigner(txId string, signer *model.MultisigTxSigner) (int64, error) {
-	tx, err := s.db.Begin()
-	if err != nil {
-		return 0, err
-	}
-
-	multisigTx, err := s.GetMultisigTx(txId)
-	if err != nil {
-		return 0, err
-	}
-
-	stmt, err := tx.Prepare("INSERT INTO multisig_tx_owners (multisig_tx_id, address, signature, is_signer) VALUES (?, ?, ?, ?)")
-	if err != nil {
-		return 0, err
-	}
-	res, err := stmt.Exec(multisigTx.Id, signer.Address, signer.Signature, true)
-	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			log.Printf("Execute statement failed: %v, unable to back: %v", err, rollbackErr)
+func (s *MultisigService) isOwner(multisigTx *model.MultisigTx, signerAddress string) bool {
+	for _, owner := range multisigTx.Owners {
+		if owner.Address == signerAddress {
+			return true
 		}
-		log.Print(err)
-		return 0, err
 	}
-
-	err = tx.Commit()
-	if err != nil {
-		log.Printf("Commit failed: %v", err)
-		return 0, err
-	}
-
-	return res.LastInsertId()
+	return false
 }
