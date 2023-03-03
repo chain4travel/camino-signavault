@@ -1,4 +1,4 @@
-listenerAddress: ":9000"
+listenerAddress: ":8080"
 database:
-  dsn: "root:password@tcp(127.0.0.1:3306)/signavault"
+  dsn: "root:password@tcp(localhost:3306)/signavault"
   type: "mysql"
