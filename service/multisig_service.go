@@ -122,7 +122,14 @@ func (s *MultisigService) UpdateMultisigTx(multisigTx *model.MultisigTx) (bool, 
 }
 
 func (s *MultisigService) GetAllMultisigTx() (*[]model.MultisigTx, error) {
-	return s.doGetMultisigTx("", "")
+	tx, err := s.doGetMultisigTx("", "")
+	if err != nil {
+		return nil, err
+	}
+	if len(*tx) <= 0 {
+		return &[]model.MultisigTx{}, nil
+	}
+	return tx, nil
 }
 
 func (s *MultisigService) GetAllMultisigTxForAlias(alias string) (*[]model.MultisigTx, error) {
