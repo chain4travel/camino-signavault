@@ -3,20 +3,35 @@ package service
 import (
 	"database/sql"
 	"errors"
+	"log"
+	"strconv"
+
+	"github.com/ava-labs/avalanchego/cache"
+	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils/crypto"
+	"github.com/ava-labs/avalanchego/utils/formatting"
+	"github.com/ava-labs/avalanchego/utils/hashing"
+
 	"github.com/chain4travel/camino-signavault/db"
 	"github.com/chain4travel/camino-signavault/dto"
 	"github.com/chain4travel/camino-signavault/model"
-	"log"
-	"strconv"
+)
+
+const (
+	defaultCacheSize = 256
 )
 
 type MultisigService struct {
-	db db.Db
+	db          db.Db
+	SECPFactory crypto.FactorySECP256K1R
 }
 
 func NewMultisigService(db db.Db) *MultisigService {
 	return &MultisigService{
 		db: db,
+		SECPFactory: crypto.FactorySECP256K1R{
+			Cache: cache.LRU{Size: defaultCacheSize},
+		},
 	}
 }
 
@@ -30,8 +45,11 @@ func (s *MultisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 	}
 
 	signature := multisigTxArgs.Signature
-	creator := s.getAddressFromSignature(signature)
 	unsignedTx := multisigTxArgs.UnsignedTx
+	creator, err := s.getAddressFromSignature(unsignedTx, signature)
+	if err != nil {
+		return nil, errors.New("failed to retrieve address from signature")
+	}
 	threshold, err := strconv.Atoi(aliasInfo.Result.Threshold)
 	if err != nil {
 		return nil, errors.New("threshold is not a number")
@@ -64,7 +82,6 @@ func (s *MultisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 		return nil, err
 	}
 	res, err := stmt.Exec(alias, threshold, unsignedTx)
-
 	if err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			log.Printf("Execute statement failed: %v, unable to rollback: %v", err, rollbackErr)
@@ -79,7 +96,7 @@ func (s *MultisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 		ownerSignature := ""
 
 		// todo check if owner is signer after parsing signature
-		if owner == creator {
+		if owner == creator.String() {
 			isSigner = true
 			//	// check if signature is not empty
 			//	if len(signer.Signature) == 0 {
@@ -115,7 +132,6 @@ func (s *MultisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 }
 
 func (s *MultisigService) UpdateMultisigTx(multisigTx *model.MultisigTx) (bool, error) {
-
 	if multisig, _ := s.GetMultisigTx(multisigTx.Id); multisig == nil {
 		return false, errors.New("no pending multisig tx found")
 	}
@@ -160,7 +176,6 @@ func (s *MultisigService) GetAllMultisigTx() (*[]model.MultisigTx, error) {
 
 func (s *MultisigService) GetAllMultisigTxForAlias(alias string) (*[]model.MultisigTx, error) {
 	tx, err := s.doGetMultisigTx(alias, -1)
-
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +187,6 @@ func (s *MultisigService) GetAllMultisigTxForAlias(alias string) (*[]model.Multi
 
 func (s *MultisigService) GetMultisigTx(txId int64) (*model.MultisigTx, error) {
 	tx, err := s.doGetMultisigTx("", txId)
-
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +278,7 @@ func (s *MultisigService) doGetMultisigTx(alias string, txId int64) (*[]model.Mu
 	}(rows)
 
 	var result []model.MultisigTx
-	var multiSigTx = make(map[int64]model.MultisigTx)
+	multiSigTx := make(map[int64]model.MultisigTx)
 
 	for rows.Next() {
 		var (
@@ -325,7 +339,7 @@ func (s *MultisigService) doGetMultisigTx(alias string, txId int64) (*[]model.Mu
 		//}
 
 		tx.Owners = owners
-		//tx.Signers = signers
+		// tx.Signers = signers
 
 		multiSigTx[txId] = tx
 
@@ -404,7 +418,15 @@ func (s *MultisigService) contains(arr []string, str string) bool {
 	return false
 }
 
-func (s *MultisigService) getAddressFromSignature(signature string) string {
-	// todo implement this
-	return ""
+func (s *MultisigService) getAddressFromSignature(unsignedTx string, signature string) (ids.ShortID, error) {
+	unsignedTxBytes, _ := formatting.Decode(formatting.Hex, unsignedTx)
+	txHash := hashing.ComputeHash256(unsignedTxBytes)
+	signatureBytes, _ := formatting.Decode(formatting.Hex, signature)
+
+	pub, err := s.SECPFactory.RecoverHashPublicKey(txHash, signatureBytes)
+	if err != nil {
+		return ids.ShortEmpty, err
+	}
+
+	return pub.Address(), nil
 }
