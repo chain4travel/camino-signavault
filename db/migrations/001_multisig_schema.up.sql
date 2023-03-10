@@ -10,7 +10,6 @@ CREATE TABLE multisig_tx
 );
 
 CREATE INDEX idx_multisig_tx_alias ON multisig_tx (alias);
-CREATE UNIQUE INDEX idx_multisig_tx_unsigned_tx ON multisig_tx (unsigned_tx);
 
 CREATE TABLE multisig_tx_owners
 (

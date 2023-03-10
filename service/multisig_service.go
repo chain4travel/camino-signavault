@@ -23,8 +23,9 @@ func (s *MultisigService) CreateMultisigTx(multisigTx *model.MultisigTx) (*model
 
 	// check signers count is less than threshold
 	signers := multisigTx.Signers
-	if len(signers) >= multisigTx.Threshold {
-		return nil, errors.New("signer count is more than threshold")
+	err = s.validateThreshold(&signers, multisigTx.Threshold)
+	if err != nil {
+		return nil, err
 	}
 
 	tx, err := s.db.Begin()
@@ -85,12 +86,12 @@ func (s *MultisigService) CreateMultisigTx(multisigTx *model.MultisigTx) (*model
 		return nil, err
 	}
 
-	return s.GetMultisigTx(multisigTx.UnsignedTx)
+	return s.GetMultisigTx(txId)
 }
 
 func (s *MultisigService) UpdateMultisigTx(multisigTx *model.MultisigTx) (bool, error) {
 
-	if multisig, _ := s.GetMultisigTx(multisigTx.UnsignedTx); multisig == nil {
+	if multisig, _ := s.GetMultisigTx(multisigTx.Id); multisig == nil {
 		return false, errors.New("no pending multisig tx found")
 	}
 
@@ -122,7 +123,7 @@ func (s *MultisigService) UpdateMultisigTx(multisigTx *model.MultisigTx) (bool, 
 }
 
 func (s *MultisigService) GetAllMultisigTx() (*[]model.MultisigTx, error) {
-	tx, err := s.doGetMultisigTx("", "")
+	tx, err := s.doGetMultisigTx("", -1)
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +134,7 @@ func (s *MultisigService) GetAllMultisigTx() (*[]model.MultisigTx, error) {
 }
 
 func (s *MultisigService) GetAllMultisigTxForAlias(alias string) (*[]model.MultisigTx, error) {
-	tx, err := s.doGetMultisigTx(alias, "")
+	tx, err := s.doGetMultisigTx(alias, -1)
 
 	if err != nil {
 		return nil, err
@@ -144,7 +145,7 @@ func (s *MultisigService) GetAllMultisigTxForAlias(alias string) (*[]model.Multi
 	return tx, nil
 }
 
-func (s *MultisigService) GetMultisigTx(txId string) (*model.MultisigTx, error) {
+func (s *MultisigService) GetMultisigTx(txId int64) (*model.MultisigTx, error) {
 	tx, err := s.doGetMultisigTx("", txId)
 
 	if err != nil {
@@ -157,7 +158,7 @@ func (s *MultisigService) GetMultisigTx(txId string) (*model.MultisigTx, error) 
 	return &(*tx)[0], nil
 }
 
-func (s *MultisigService) AddMultisigTxSigner(txId string, signer *model.MultisigTxSigner) (*model.MultisigTx, error) {
+func (s *MultisigService) AddMultisigTxSigner(txId int64, signer *model.MultisigTxSigner) (*model.MultisigTx, error) {
 	multisigTx, err := s.GetMultisigTx(txId)
 	if err != nil {
 		return nil, err
@@ -174,7 +175,7 @@ func (s *MultisigService) AddMultisigTxSigner(txId string, signer *model.Multisi
 
 	// check if signer count is more than threshold
 	signers := multisigTx.Signers
-	if len(signers) >= multisigTx.Threshold {
+	if int8(len(signers)) >= multisigTx.Threshold {
 		return nil, errors.New("signer count is more than threshold")
 	}
 
@@ -205,7 +206,7 @@ func (s *MultisigService) AddMultisigTxSigner(txId string, signer *model.Multisi
 	return s.GetMultisigTx(txId)
 }
 
-func (s *MultisigService) doGetMultisigTx(alias string, txId string) (*[]model.MultisigTx, error) {
+func (s *MultisigService) doGetMultisigTx(alias string, txId int64) (*[]model.MultisigTx, error) {
 	var err error
 
 	query := "SELECT tx.id, " +
@@ -220,7 +221,7 @@ func (s *MultisigService) doGetMultisigTx(alias string, txId string) (*[]model.M
 		"owners.is_signer " +
 		"FROM multisig_tx AS tx " +
 		"LEFT JOIN multisig_tx_owners AS owners ON tx.id = owners.multisig_tx_id " +
-		"WHERE (tx.alias=? OR ?='') AND (tx.unsigned_tx=? OR ?='') AND tx.transaction_id IS NULL " +
+		"WHERE (tx.alias=? OR ?='') AND (tx.id=? OR ?=-1) AND tx.transaction_id IS NULL " +
 		"ORDER BY tx.created_at ASC"
 
 	rows, err := s.db.Query(query, alias, alias, txId, txId)
@@ -235,13 +236,13 @@ func (s *MultisigService) doGetMultisigTx(alias string, txId string) (*[]model.M
 	}(rows)
 
 	var result []model.MultisigTx
-	var multiSigTx = make(map[int]model.MultisigTx)
+	var multiSigTx = make(map[int64]model.MultisigTx)
 
 	for rows.Next() {
 		var (
-			txId              int
+			txId              int64
 			txAlias           string
-			txThreshold       int
+			txThreshold       int8
 			txTransactionId   sql.NullString
 			txUnsignedTx      string
 			ownerMultisigTxId sql.NullInt64
@@ -260,7 +261,7 @@ func (s *MultisigService) doGetMultisigTx(alias string, txId string) (*[]model.M
 			tx = multiSigTx[txId]
 		} else {
 			tx = model.MultisigTx{
-				Id:            int64(txId),
+				Id:            txId,
 				Alias:         txAlias,
 				Threshold:     txThreshold,
 				TransactionId: txTransactionId.String,
@@ -318,4 +319,15 @@ func (s *MultisigService) isOwner(multisigTx *model.MultisigTx, signerAddress st
 		}
 	}
 	return false
+}
+
+func (s *MultisigService) validateThreshold(signers *[]model.MultisigTxSigner, threshold int8) error {
+	if signers == nil || len(*signers) == 0 {
+		return errors.New("there must be at least one signer")
+	}
+
+	if int8(len(*signers)) >= threshold {
+		return errors.New("signer count is more than threshold")
+	}
+	return nil
 }
