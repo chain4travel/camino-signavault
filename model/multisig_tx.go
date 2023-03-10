@@ -1,10 +1,10 @@
 package model
 
 type MultisigTx struct {
-	Id            int64              `json:"-"`
+	Id            int64              `json:"id"`
 	UnsignedTx    string             `json:"unsignedTx"`
 	Alias         string             `json:"alias"`
-	Threshold     int                `json:"threshold"`
+	Threshold     int8               `json:"threshold"`
 	TransactionId string             `json:"transactionId"`
 	Owners        []MultisigTxOwner  `json:"owners"`
 	Signers       []MultisigTxSigner `json:"signers"`
