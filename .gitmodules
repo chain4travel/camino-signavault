@@ -1,0 +1,3 @@
+[submodule "dependencies/caminogo"]
+	path = dependencies/caminogo
+	url = https://github.com/chain4travel/caminogo.git
