@@ -3,6 +3,7 @@ package service
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/chain4travel/camino-signavault/db"
 	"github.com/chain4travel/camino-signavault/model"
 	"log"
@@ -20,6 +21,13 @@ func NewMultisigService(db db.Db) *MultisigService {
 
 func (s *MultisigService) CreateMultisigTx(multisigTx *model.MultisigTx) (*model.MultisigTx, error) {
 	var err error
+
+	aliasInfo, err := s.getAliasInfo(multisigTx.Alias)
+	if err != nil {
+		return nil, err
+	}
+	// todo use alias info object to validate owners and threshold
+	fmt.Printf("%s", aliasInfo)
 
 	// check signers count is less than threshold
 	signers := multisigTx.Signers
@@ -330,4 +338,14 @@ func (s *MultisigService) validateThreshold(signers *[]model.MultisigTxSigner, t
 		return errors.New("signer count is more than threshold")
 	}
 	return nil
+}
+
+func (s *MultisigService) getAliasInfo(alias string) (*model.AliasInfo, error) {
+	nodeService := NewNodeService()
+	aliasInfo, err := nodeService.GetMultisigAlias(alias)
+	if err != nil {
+		log.Printf("Getting info for alias %s failed: %v", alias, err)
+		return nil, err
+	}
+	return aliasInfo, nil
 }
