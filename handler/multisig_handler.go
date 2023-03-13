@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"github.com/chain4travel/camino-signavault/db"
+	"github.com/chain4travel/camino-signavault/dto"
 	"github.com/chain4travel/camino-signavault/model"
 	"github.com/chain4travel/camino-signavault/service"
 	"github.com/gin-gonic/gin"
@@ -21,8 +22,8 @@ func NewMultisigHandler() *MultisigHandler {
 }
 
 func (h *MultisigHandler) CreateMultisigTx(ctx *gin.Context) {
-	var multisigTx *model.MultisigTx
-	err := ctx.BindJSON(&multisigTx)
+	var args *dto.MultisigTxArgs
+	err := ctx.BindJSON(&args)
 	if err != nil {
 		ctx.JSON(400, gin.H{
 			"message": "Error parsing multisig transaction from JSON",
@@ -30,10 +31,10 @@ func (h *MultisigHandler) CreateMultisigTx(ctx *gin.Context) {
 		})
 	}
 
-	response, err := h.MultisigSvc.CreateMultisigTx(multisigTx)
+	response, err := h.MultisigSvc.CreateMultisigTx(args)
 	if err != nil {
 		ctx.JSON(400, gin.H{
-			"message": "Error inserting multisig transaction in database",
+			"message": "Error creating new multisig transaction",
 			"error":   err.Error(),
 		})
 		return
@@ -96,7 +97,7 @@ func (h *MultisigHandler) AddMultisigTxSigner(ctx *gin.Context) {
 	var err error
 	txId := h.parseIdParam(ctx.Param("txId"), ctx)
 
-	var signer *model.MultisigTxSigner
+	var signer *dto.SignTxArgs
 	err = ctx.BindJSON(&signer)
 	if err != nil {
 		ctx.JSON(400, gin.H{
@@ -109,7 +110,7 @@ func (h *MultisigHandler) AddMultisigTxSigner(ctx *gin.Context) {
 	_, err = h.MultisigSvc.AddMultisigTxSigner(txId, signer)
 	if err != nil {
 		ctx.JSON(400, gin.H{
-			"message": fmt.Sprintf("Error adding signer %s to multisig transaction with id %s", signer.Address, txId),
+			"message": fmt.Sprintf("Error adding signer to multisig transaction with id %s", txId),
 			"error":   err.Error(),
 		})
 		return
