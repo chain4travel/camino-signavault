@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"github.com/chain4travel/camino-signavault/model"
@@ -47,10 +48,17 @@ func (s *NodeService) GetMultisigAlias(alias string) (*model.AliasInfo, error) {
 	}
 
 	var aliasInfo *model.AliasInfo
-	err = json.Unmarshal(resBody, &aliasInfo)
+
+	err = strictUnmarshal(resBody, &aliasInfo)
 	if err != nil {
 		return nil, errors.New("could not unmarshal alias info: " + err.Error())
 	}
 
 	return aliasInfo, nil
+}
+
+func strictUnmarshal(data []byte, v interface{}) error {
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.DisallowUnknownFields()
+	return dec.Decode(v)
 }
