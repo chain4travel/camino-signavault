@@ -9,6 +9,7 @@ import (
 type Config struct {
 	ListenerAddress string   `mapstructure:"listenerAddress"`
 	Database        Database `mapstructure:"database"`
+	CaminoNode      string   `mapstructure:"caminoNode"`
 }
 
 type Database struct {

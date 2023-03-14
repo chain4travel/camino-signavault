@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/chain4travel/camino-signavault/model"
+	"github.com/chain4travel/camino-signavault/util"
 	"io"
 	"net/http"
 	"strings"
@@ -22,7 +24,8 @@ func NewNodeService() *NodeService {
 }
 
 func (s *NodeService) GetMultisigAlias(alias string) (*model.AliasInfo, error) {
-	requestURL := "https://kopernikus.camino.network/ext/bc/P"
+	config := util.GetInstance()
+	requestURL := fmt.Sprintf("%s/ext/bc/P", config.CaminoNode)
 	bodyReader := strings.NewReader(`
 			{
 				"jsonrpc":"2.0",
