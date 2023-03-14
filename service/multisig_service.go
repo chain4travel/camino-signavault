@@ -131,8 +131,8 @@ func (s *MultisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 	return s.GetMultisigTx(txId)
 }
 
-func (s *MultisigService) UpdateMultisigTx(multisigTx *model.MultisigTx) (bool, error) {
-	if multisig, _ := s.GetMultisigTx(multisigTx.Id); multisig == nil {
+func (s *MultisigService) UpdateMultisigTx(txId int64, completeTx *dto.CompleteTxArgs) (bool, error) {
+	if multisig, _ := s.GetMultisigTx(txId); multisig == nil {
 		return false, errors.New("no pending multisig tx found")
 	}
 
@@ -141,11 +141,11 @@ func (s *MultisigService) UpdateMultisigTx(multisigTx *model.MultisigTx) (bool, 
 		return false, err
 	}
 
-	stmt, err := tx.Prepare("UPDATE multisig_tx SET transaction_id = ? WHERE unsigned_tx = ? AND transaction_id IS NULL")
+	stmt, err := tx.Prepare("UPDATE multisig_tx SET transaction_id = ? WHERE id = ? AND transaction_id IS NULL")
 	if err != nil {
 		return false, err
 	}
-	_, err = stmt.Exec(multisigTx.TransactionId, multisigTx.UnsignedTx)
+	_, err = stmt.Exec(completeTx.TransactionId, txId)
 	if err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			log.Printf("Execute statement failed: %v, unable to rollback: %v", err, rollbackErr)
