@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/chain4travel/camino-signavault/db"
 	"github.com/chain4travel/camino-signavault/dto"
-	"github.com/chain4travel/camino-signavault/model"
 	"github.com/chain4travel/camino-signavault/service"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -119,20 +118,21 @@ func (h *MultisigHandler) AddMultisigTxSigner(ctx *gin.Context) {
 	ctx.JSON(200, multisigAlias)
 }
 
-func (h *MultisigHandler) UpdateMultisigTx(ctx *gin.Context) {
-	var multisigTx *model.MultisigTx
-	err := ctx.BindJSON(&multisigTx)
+func (h *MultisigHandler) CompleteMultisigTx(ctx *gin.Context) {
+	txId := h.parseIdParam(ctx.Param("txId"), ctx)
+	var completeTxArgs *dto.CompleteTxArgs
+	err := ctx.BindJSON(&completeTxArgs)
 	if err != nil {
 		ctx.JSON(400, gin.H{
-			"message": "Error parsing multisig transaction from JSON",
+			"message": "Error parsing JSON for completing multisig transaction",
 			"error":   err.Error(),
 		})
 	}
 
-	_, err = h.MultisigSvc.UpdateMultisigTx(multisigTx)
+	_, err = h.MultisigSvc.UpdateMultisigTx(txId, completeTxArgs)
 	if err != nil {
 		ctx.JSON(400, gin.H{
-			"message": "Error updating multisig transaction in database",
+			"message": "Error completing multisig transaction",
 			"error":   err.Error(),
 		})
 		return

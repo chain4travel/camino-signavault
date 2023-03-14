@@ -10,3 +10,7 @@ type SignTxArgs struct {
 	Signature string `json:"signature"`
 	Timestamp int64  `json:"timestamp"`
 }
+
+type CompleteTxArgs struct {
+	TransactionId string `json:"transactionId"`
+}

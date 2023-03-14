@@ -152,7 +152,7 @@ func TestMultisigHandler_UpdateMultisigTx(t *testing.T) {
 			h := &MultisigHandler{
 				MultisigSvc: tt.fields.MultisigSvc,
 			}
-			h.UpdateMultisigTx(tt.args.ctx)
+			h.CompleteMultisigTx(tt.args.ctx)
 		})
 	}
 }
