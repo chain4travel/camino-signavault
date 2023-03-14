@@ -66,11 +66,11 @@ func TestMain(m *testing.M) {
 
 func TestCreateMultisigTx(t *testing.T) {
 	preFundedKeys := crypto.BuildTestKeys()
-	address := preFundedKeys[0].PublicKey().Address()
+	address := preFundedKeys[3].PublicKey().Address()
 	log.Printf(address.String())
 
 	signers := [][]*crypto.PrivateKeySECP256K1R{
-		{preFundedKeys[0]},
+		{preFundedKeys[3]},
 	}
 
 	// Create a tx
@@ -113,7 +113,7 @@ func TestCreateMultisigTx(t *testing.T) {
 			name: "Happy path",
 			args: args{
 				multisigTx: &dto.MultisigTxArgs{
-					Alias:      "X-kopernikus1vscyf7czawylztn6ghhg0z27swwewxgzgpcxvv",
+					Alias:      "P-kopernikus1k4przmfu79ypp4u7y98glmdpzwk0u3sc7saazy",
 					UnsignedTx: utxString,
 					Signature:  signature,
 				},

@@ -1,5 +1,6 @@
 listenerAddress: ":8080"
-caminoNode: "https://kopernikus.camino.network"
+caminoNode: "http://localhost:9650"
+networkID: 1002
 database:
   dsn: "DB_USER:DB_PASSWORD@tcp(DB_HOST:DB_PORT)/DB_NAME"
   type: "mysql"
