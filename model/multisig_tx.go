@@ -15,7 +15,3 @@ type MultisigTxOwner struct {
 	Address      string `json:"address"`
 	Signature    string `json:"signature"`
 }
-
-//type MultisigTxSigner struct {
-//	MultisigTxOwner
-//}

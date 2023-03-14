@@ -10,6 +10,7 @@ type Config struct {
 	ListenerAddress string   `mapstructure:"listenerAddress"`
 	Database        Database `mapstructure:"database"`
 	CaminoNode      string   `mapstructure:"caminoNode"`
+	NetworkId       uint32   `mapstructure:"networkId"`
 }
 
 type Database struct {
@@ -27,6 +28,7 @@ func GetInstance() *Config {
 		lock.Lock()
 		defer lock.Unlock()
 		if configInstance == nil {
+			//config, err := loadConfig(GetRootPath(), configName)
 			config, err := loadConfig(".", configName)
 			if err != nil {
 				log.Fatal(err)

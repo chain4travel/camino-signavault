@@ -3,11 +3,13 @@ package service
 import (
 	"database/sql"
 	"errors"
+	"github.com/ava-labs/avalanchego/utils/constants"
+	"github.com/ava-labs/avalanchego/utils/formatting/address"
+	"github.com/chain4travel/camino-signavault/util"
 	"log"
 	"strconv"
 
 	"github.com/ava-labs/avalanchego/cache"
-	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/crypto"
 	"github.com/ava-labs/avalanchego/utils/formatting"
 	"github.com/ava-labs/avalanchego/utils/hashing"
@@ -56,21 +58,9 @@ func (s *MultisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 	}
 	owners := aliasInfo.Result.Addresses
 
-	// todo use alias info object to validate owners and threshold
-	//fmt.Printf("%s", aliasInfo)
-	//err = s.validateAliasInfo(multisigTx, aliasInfo)
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	// todo get creator address from signature and add it to signers
-	// check signers count is less than threshold
-	//signers := multisigTx.Signers
-	// topo decide how to validate signers
-	//err = s.validateSignersCount(&signers, multisigTx.Threshold)
-	//if err != nil {
-	//	return nil, err
-	//}
+	if !s.isCreatorOwner(owners, creator) {
+		return nil, errors.New("creator of multisig transaction is not an owner")
+	}
 
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -94,17 +84,8 @@ func (s *MultisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 	for _, owner := range owners {
 		isSigner := false
 		ownerSignature := ""
-
-		// todo check if owner is signer after parsing signature
-		if owner == creator.String() {
+		if owner == creator {
 			isSigner = true
-			//	// check if signature is not empty
-			//	if len(signer.Signature) == 0 {
-			//		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			//			log.Printf("Execute statement failed: %v, unable to rollback: %v", err, rollbackErr)
-			//		}
-			//		return nil, errors.New("signer signature is empty")
-			//	}
 			ownerSignature = signature
 		}
 
@@ -208,10 +189,9 @@ func (s *MultisigService) AddMultisigTxSigner(txId int64, signer *dto.SignTxArgs
 		return nil, errors.New("signature is empty")
 	}
 
-	// todo parse signature and check if signer is owner
-	//if !s.isOwner(multisigTx, signer.Address) {
-	//	return nil, errors.New("signer is not owner")
-	//}
+	if !s.isOwner(multisigTx, signer.Signature) {
+		return nil, errors.New("signer is not owner")
+	}
 	signerAddress := ""
 
 	// todo check if all owner have signed - maybe the client tried with an owner who has signed already
@@ -315,11 +295,6 @@ func (s *MultisigService) doGetMultisigTx(alias string, txId int64) (*[]model.Mu
 		if owners == nil {
 			owners = []model.MultisigTxOwner{}
 		}
-		//signers := tx.Signers
-		//if signers == nil {
-		//	signers = []model.MultisigTxSigner{}
-		//}
-
 		// add owner
 		owner := model.MultisigTxOwner{
 			Id:           ownerId.Int64,
@@ -328,18 +303,7 @@ func (s *MultisigService) doGetMultisigTx(alias string, txId int64) (*[]model.Mu
 			Signature:    ownerSignature.String,
 		}
 		owners = append(owners, owner)
-
-		// add signer
-		//if ownerIsSigner.Valid && ownerIsSigner.Bool {
-		//	signer := model.MultisigTxSigner{
-		//		MultisigTxOwner: owner,
-		//		Signature:       ownerSignature.String,
-		//	}
-		//	signers = append(signers, signer)
-		//}
-
 		tx.Owners = owners
-		// tx.Signers = signers
 
 		multiSigTx[txId] = tx
 
@@ -355,25 +319,23 @@ func (s *MultisigService) doGetMultisigTx(alias string, txId int64) (*[]model.Mu
 	return &result, nil
 }
 
-func (s *MultisigService) isOwner(multisigTx *model.MultisigTx, signerAddress string) bool {
+func (s *MultisigService) isOwner(multisigTx *model.MultisigTx, address string) bool {
 	for _, owner := range multisigTx.Owners {
-		if owner.Address == signerAddress {
+		if owner.Address == address {
 			return true
 		}
 	}
 	return false
 }
 
-//func (s *MultisigService) validateSignersCount(signers *[]model.MultisigTxSigner, threshold int8) error {
-//	if signers == nil || len(*signers) == 0 {
-//		return errors.New("there must be at least one signer")
-//	}
-//
-//	if int8(len(*signers)) >= threshold {
-//		return errors.New("signer count is more than threshold")
-//	}
-//	return nil
-//}
+func (s *MultisigService) isCreatorOwner(owners []string, address string) bool {
+	for _, owner := range owners {
+		if owner == address {
+			return true
+		}
+	}
+	return false
+}
 
 func (s *MultisigService) getAliasInfo(alias string) (*model.AliasInfo, error) {
 	nodeService := NewNodeService()
@@ -385,48 +347,31 @@ func (s *MultisigService) getAliasInfo(alias string) (*model.AliasInfo, error) {
 	return aliasInfo, nil
 }
 
-func (s *MultisigService) validateAliasInfo(tx *model.MultisigTx, info *model.AliasInfo) error {
-	threshold, err := strconv.Atoi(info.Result.Threshold)
-	if err != nil {
-		return errors.New("threshold is not a number")
-	}
-
-	if int8(threshold) != tx.Threshold {
-		return errors.New("threshold could not be verified in node")
-	}
-
-	if len(info.Result.Addresses) != len(tx.Owners) {
-		return errors.New("owners count could not be verified in node")
-	}
-
-	for _, owner := range tx.Owners {
-		if !s.contains(info.Result.Addresses, owner.Address) {
-			return errors.New("owner is not member of this alias")
-		}
-	}
-
-	return nil
-}
-
 func (s *MultisigService) contains(arr []string, str string) bool {
 	for _, v := range arr {
 		if v == str {
 			return true
 		}
 	}
-
 	return false
 }
 
-func (s *MultisigService) getAddressFromSignature(unsignedTx string, signature string) (ids.ShortID, error) {
+func (s *MultisigService) getAddressFromSignature(unsignedTx string, signature string) (string, error) {
 	unsignedTxBytes, _ := formatting.Decode(formatting.Hex, unsignedTx)
 	txHash := hashing.ComputeHash256(unsignedTxBytes)
 	signatureBytes, _ := formatting.Decode(formatting.Hex, signature)
 
 	pub, err := s.SECPFactory.RecoverHashPublicKey(txHash, signatureBytes)
 	if err != nil {
-		return ids.ShortEmpty, err
+		return "", err
 	}
 
-	return pub.Address(), nil
+	config := util.GetInstance()
+	hrp := constants.NetworkIDToHRP[config.NetworkId]
+	bech32Address, err := address.FormatBech32(hrp, pub.Address().Bytes())
+	if err != nil {
+		return "", err
+	}
+
+	return "P-" + bech32Address, nil
 }
