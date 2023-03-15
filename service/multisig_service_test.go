@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ava-labs/avalanchego/utils/hashing"
+
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/stretchr/testify/require"
 
@@ -66,11 +68,11 @@ func TestMain(m *testing.M) {
 
 func TestCreateMultisigTx(t *testing.T) {
 	preFundedKeys := crypto.BuildTestKeys()
-	address := preFundedKeys[3].PublicKey().Address()
+	address := preFundedKeys[0].PublicKey().Address()
 	log.Printf(address.String())
 
 	signers := [][]*crypto.PrivateKeySECP256K1R{
-		{preFundedKeys[3]},
+		{preFundedKeys[0]},
 	}
 
 	// Create a tx
@@ -84,7 +86,8 @@ func TestCreateMultisigTx(t *testing.T) {
 	}
 
 	// Sign the tx
-	tx, _ := txs.NewSigned(unsignedAddressStateTx, txs.Codec, signers)
+	tx, err := txs.NewSigned(unsignedAddressStateTx, txs.Codec, signers)
+	require.NoError(t, err)
 
 	// Get the unsigned tx bytes
 	utxBytes := tx.Unsigned.Bytes()
@@ -99,7 +102,8 @@ func TestCreateMultisigTx(t *testing.T) {
 			break
 		}
 	}
-	signature, _ := formatting.Encode(formatting.Hex, sig[:])
+	signature, err := formatting.Encode(formatting.Hex, sig[:])
+	require.NoError(t, err)
 
 	type args struct {
 		multisigTx *dto.MultisigTxArgs
@@ -130,6 +134,67 @@ func TestCreateMultisigTx(t *testing.T) {
 			}
 
 			_, err := s.CreateMultisigTx(tt.args.multisigTx)
+			if tt.err != nil {
+				require.Equal(t, tt.err, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestGetMultisigTx(t *testing.T) {
+	preFundedKeys := crypto.BuildTestKeys()
+	address := preFundedKeys[3].PublicKey().Address()
+	log.Printf(address.String())
+
+	signer := preFundedKeys[0]
+
+	msigAlias := "P-kopernikus1k4przmfu79ypp4u7y98glmdpzwk0u3sc7saazy"
+	timestamp := "1678877386"
+
+	// Create payload from msig alias and timestamp
+	payloadBytes, err := formatting.Decode(formatting.Hex, msigAlias+timestamp)
+	require.NoError(t, err)
+
+	// Compute the hash of the payload
+	hash := hashing.ComputeHash256(payloadBytes)
+
+	// Sign the hash
+	sig, err := signer.SignHash(hash)
+	require.NoError(t, err)
+	signature, err := formatting.Encode(formatting.Hex, sig[:])
+	require.NoError(t, err)
+
+	type args struct {
+		msigAlias string
+		timestamp string
+		signature string
+	}
+	tests := []struct {
+		name string
+		args args
+		err  error
+	}{
+		{
+			name: "Happy path",
+			args: args{
+				msigAlias: msigAlias,
+				timestamp: timestamp,
+				signature: signature,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &MultisigService{
+				db: db.Db{},
+				SECPFactory: crypto.FactorySECP256K1R{
+					Cache: cache.LRU{Size: defaultCacheSize},
+				},
+			}
+
+			_, err := s.GetAllMultisigTxForAlias(tt.args.msigAlias, tt.args.signature, tt.args.timestamp)
 			if tt.err != nil {
 				require.Equal(t, tt.err, err)
 			} else {
