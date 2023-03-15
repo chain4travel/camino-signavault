@@ -45,6 +45,9 @@ func TestMain(m *testing.M) {
 		_, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
 		conn, err = sql.Open("mysql", mysqlContainer.URI)
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		// run migration
 		path := "file://" + util.GetRootPath() + "/db/migrations"
@@ -68,11 +71,11 @@ func TestMain(m *testing.M) {
 
 func TestCreateMultisigTx(t *testing.T) {
 	preFundedKeys := crypto.BuildTestKeys()
-	address := preFundedKeys[0].PublicKey().Address()
-	log.Printf(address.String())
+	address := preFundedKeys[3].PublicKey().Address()
+	log.Print(address.String())
 
 	signers := [][]*crypto.PrivateKeySECP256K1R{
-		{preFundedKeys[0]},
+		{preFundedKeys[3]},
 	}
 
 	// Create a tx
@@ -127,7 +130,7 @@ func TestCreateMultisigTx(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &MultisigService{
-				db: db.Db{},
+				db: db.Db{DB: conn},
 				SECPFactory: crypto.FactorySECP256K1R{
 					Cache: cache.LRU{Size: defaultCacheSize},
 				},
@@ -144,21 +147,18 @@ func TestCreateMultisigTx(t *testing.T) {
 }
 
 func TestGetMultisigTx(t *testing.T) {
+
 	preFundedKeys := crypto.BuildTestKeys()
 	address := preFundedKeys[3].PublicKey().Address()
-	log.Printf(address.String())
+	log.Print(address.String())
 
-	signer := preFundedKeys[0]
+	signer := preFundedKeys[3]
 
 	msigAlias := "P-kopernikus1k4przmfu79ypp4u7y98glmdpzwk0u3sc7saazy"
 	timestamp := "1678877386"
 
-	// Create payload from msig alias and timestamp
-	payloadBytes, err := formatting.Decode(formatting.Hex, msigAlias+timestamp)
-	require.NoError(t, err)
-
 	// Compute the hash of the payload
-	hash := hashing.ComputeHash256(payloadBytes)
+	hash := hashing.ComputeHash256([]byte(msigAlias + timestamp))
 
 	// Sign the hash
 	sig, err := signer.SignHash(hash)
@@ -188,13 +188,13 @@ func TestGetMultisigTx(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &MultisigService{
-				db: db.Db{},
+				db: db.Db{DB: conn},
 				SECPFactory: crypto.FactorySECP256K1R{
 					Cache: cache.LRU{Size: defaultCacheSize},
 				},
 			}
 
-			_, err := s.GetAllMultisigTxForAlias(tt.args.msigAlias, tt.args.signature, tt.args.timestamp)
+			_, err := s.GetAllMultisigTxForAlias(tt.args.msigAlias, tt.args.timestamp, tt.args.signature)
 			if tt.err != nil {
 				require.Equal(t, tt.err, err)
 			} else {

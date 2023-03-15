@@ -8,9 +8,11 @@ type MultisigTxArgs struct {
 
 type SignTxArgs struct {
 	Signature string `json:"signature"`
-	Timestamp int64  `json:"timestamp"`
+	Timestamp string `json:"timestamp"`
 }
 
 type CompleteTxArgs struct {
 	TransactionId string `json:"transactionId"`
+	Signature     string `json:"signature"`
+	Timestamp     string `json:"timestamp"`
 }

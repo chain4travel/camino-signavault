@@ -128,7 +128,7 @@ func (h *MultisigHandler) SignMultisigTx(ctx *gin.Context) {
 	_, err = h.MultisigSvc.SignMultisigTx(txId, signer)
 	if err != nil {
 		ctx.JSON(400, gin.H{
-			"message": fmt.Sprintf("Error adding signer to multisig transaction with id %s", txId),
+			"message": fmt.Sprintf("Error adding signer to multisig transaction with id %d", txId),
 			"error":   err.Error(),
 		})
 		return
@@ -176,5 +176,4 @@ func (h *MultisigHandler) throwMissingQueryParamError(ctx *gin.Context, param st
 		"message": fmt.Sprintf("Missing query parameter '%s'", param),
 		"error":   "missing query parameter",
 	})
-	return
 }
