@@ -41,41 +41,60 @@ func (h *MultisigHandler) CreateMultisigTx(ctx *gin.Context) {
 	ctx.JSON(201, *response)
 }
 
-func (h *MultisigHandler) GetAllMultisigTx(ctx *gin.Context) {
-	multisigTx, err := h.MultisigSvc.GetAllMultisigTx()
-	if err != nil {
-		ctx.JSON(400, gin.H{
-			"message": "Error getting all multisig transactions",
-			"error":   err.Error(),
-		})
-	}
-	ctx.JSON(200, multisigTx)
-}
+// fixme: not used
+//func (h *MultisigHandler) GetAllMultisigTx(ctx *gin.Context) {
+//	multisigTx, err := h.MultisigSvc.GetAllMultisigTx()
+//	if err != nil {
+//		ctx.JSON(400, gin.H{
+//			"message": "Error getting all multisig transactions",
+//			"error":   err.Error(),
+//		})
+//	}
+//	ctx.JSON(200, multisigTx)
+//}
 
-func (h *MultisigHandler) GetMultisigTx(ctx *gin.Context) {
-	id := h.parseIdParam(ctx.Param("txId"), ctx)
-
-	multisigTx, err := h.MultisigSvc.GetMultisigTx(id)
-	if err != nil {
-		ctx.JSON(400, gin.H{
-			"message": fmt.Sprintf("Error getting multisig transaction with id %s", id),
-			"error":   err.Error(),
-		})
-	}
-
-	if multisigTx == nil {
-		ctx.JSON(404, gin.H{
-			"message": fmt.Sprintf("No pending multisig transaction found with id %s", id),
-			"error":   "not found",
-		})
-		return
-	}
-	ctx.JSON(200, multisigTx)
-}
+// fixme: not used
+//func (h *MultisigHandler) GetMultisigTx(ctx *gin.Context) {
+//	id := h.parseIdParam(ctx.Param("txId"), ctx)
+//	signature, b := ctx.GetQuery("signature")
+//	if !b {
+//		ctx.JSON(400, gin.H{
+//			"message": "Missing query parameter 'signature'",
+//			"error":   "missing query parameter",
+//		})
+//		return
+//	}
+//
+//	multisigTx, err := h.MultisigSvc.GetMultisigTx(id, signature)
+//	if err != nil {
+//		ctx.JSON(400, gin.H{
+//			"message": fmt.Sprintf("Error getting multisig transaction with id %s", id),
+//			"error":   err.Error(),
+//		})
+//	}
+//
+//	if multisigTx == nil {
+//		ctx.JSON(404, gin.H{
+//			"message": fmt.Sprintf("No pending multisig transaction found with id %s", id),
+//			"error":   "not found",
+//		})
+//		return
+//	}
+//	ctx.JSON(200, multisigTx)
+//}
 
 func (h *MultisigHandler) GetAllMultisigTxForAlias(ctx *gin.Context) {
 	alias := ctx.Param("alias")
-	multisigTx, err := h.MultisigSvc.GetAllMultisigTxForAlias(alias)
+	signature, b := ctx.GetQuery("signature")
+	if !b {
+		h.throwMissingQueryParamError(ctx, "signature")
+	}
+	timestamp, b := ctx.GetQuery("timestamp")
+	if !b {
+		h.throwMissingQueryParamError(ctx, "timestamp")
+	}
+
+	multisigTx, err := h.MultisigSvc.GetAllMultisigTxForAlias(alias, timestamp, signature)
 	if err != nil {
 		ctx.JSON(400, gin.H{
 			"message": fmt.Sprintf("Error getting all multisig transactions for alias %s", alias),
@@ -92,7 +111,7 @@ func (h *MultisigHandler) GetAllMultisigTxForAlias(ctx *gin.Context) {
 	ctx.JSON(200, multisigTx)
 }
 
-func (h *MultisigHandler) AddMultisigTxSigner(ctx *gin.Context) {
+func (h *MultisigHandler) SignMultisigTx(ctx *gin.Context) {
 	var err error
 	txId := h.parseIdParam(ctx.Param("txId"), ctx)
 
@@ -106,7 +125,7 @@ func (h *MultisigHandler) AddMultisigTxSigner(ctx *gin.Context) {
 		return
 	}
 
-	_, err = h.MultisigSvc.AddMultisigTxSigner(txId, signer)
+	_, err = h.MultisigSvc.SignMultisigTx(txId, signer)
 	if err != nil {
 		ctx.JSON(400, gin.H{
 			"message": fmt.Sprintf("Error adding signer to multisig transaction with id %s", txId),
@@ -129,7 +148,7 @@ func (h *MultisigHandler) CompleteMultisigTx(ctx *gin.Context) {
 		})
 	}
 
-	_, err = h.MultisigSvc.UpdateMultisigTx(txId, completeTxArgs)
+	_, err = h.MultisigSvc.CompleteMultisigTx(txId, completeTxArgs)
 	if err != nil {
 		ctx.JSON(400, gin.H{
 			"message": "Error completing multisig transaction",
@@ -150,4 +169,12 @@ func (h *MultisigHandler) parseIdParam(idParam string, ctx *gin.Context) int64 {
 		return 0
 	}
 	return int64(id)
+}
+
+func (h *MultisigHandler) throwMissingQueryParamError(ctx *gin.Context, param string) {
+	ctx.JSON(400, gin.H{
+		"message": fmt.Sprintf("Missing query parameter '%s'", param),
+		"error":   "missing query parameter",
+	})
+	return
 }
