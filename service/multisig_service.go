@@ -48,7 +48,7 @@ func (s *MultisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 
 	signature := multisigTxArgs.Signature
 	unsignedTx := multisigTxArgs.UnsignedTx
-	creator, err := s.getAddressFromSignature(unsignedTx, signature)
+	creator, err := s.getAddressFromSignature(unsignedTx, signature, true)
 	if err != nil {
 		return nil, errors.New("failed to retrieve address from signature")
 	}
@@ -114,7 +114,7 @@ func (s *MultisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 
 func (s *MultisigService) GetAllMultisigTxForAlias(alias string, timestamp string, signature string) (*[]model.MultisigTx, error) {
 	signatureArgs := alias + timestamp
-	owner, err := s.getAddressFromSignature(signatureArgs, signature)
+	owner, err := s.getAddressFromSignature(signatureArgs, signature, false)
 	if err != nil {
 		return nil, errors.New("failed to retrieve address from signature")
 	}
@@ -135,28 +135,30 @@ func (s *MultisigService) GetAllMultisigTxForAlias(alias string, timestamp strin
 	return tx, nil
 }
 
-// fixme: this is not used anymore
-//func (s *MultisigService) GetAllMultisigTx() (*[]model.MultisigTx, error) {
-//	tx, err := s.doGetMultisigTx("", -1)
-//	if err != nil {
-//		return nil, err
-//	}
-//	if len(*tx) <= 0 {
-//		return &[]model.MultisigTx{}, nil
-//	}
-//
-//	s.verifyOwner(tx, signature)
-//	s.isOwner(tx, signature)
-//
-//	return tx, nil
-//}
-
 func (s *MultisigService) CompleteMultisigTx(txId int64, completeTx *dto.CompleteTxArgs) (bool, error) {
-	if multisig, _ := s.GetMultisigTx(txId); multisig == nil {
-		return false, errors.New("no pending multisig tx found")
+	multisigTx, err := s.GetMultisigTx(txId)
+	if err != nil {
+		return false, err
 	}
 
-	// todo verify signature
+	if completeTx.Signature == "" {
+		return false, errors.New("signature is empty")
+	}
+
+	if completeTx.Timestamp == "" {
+		return false, errors.New("timestamp is empty")
+	}
+
+	signatureArgs := multisigTx.Alias + completeTx.Timestamp
+	signerAddr, err := s.getAddressFromSignature(signatureArgs, completeTx.Signature, false)
+	if err != nil {
+		return false, errors.New("failed to retrieve address from signature")
+	}
+
+	isOwner, _ := s.isOwner(multisigTx, signerAddr)
+	if !isOwner {
+		return false, errors.New("address is not an owner address for this alias")
+	}
 
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -198,30 +200,32 @@ func (s *MultisigService) GetMultisigTx(txId int64) (*model.MultisigTx, error) {
 }
 
 func (s *MultisigService) SignMultisigTx(txId int64, signer *dto.SignTxArgs) (*model.MultisigTx, error) {
-
 	multisigTx, err := s.GetMultisigTx(txId)
 	if err != nil {
 		return nil, err
 	}
 
-	// todo: verify signature
-
-	// check if signer signature or address is empty
 	if signer.Signature == "" {
 		return nil, errors.New("signature is empty")
 	}
 
-	if !s.isOwner(multisigTx, signer.Signature) {
-		return nil, errors.New("signer is not owner")
+	if signer.Timestamp == "" {
+		return nil, errors.New("timestamp is empty")
 	}
-	signerAddress := ""
 
-	// todo check if all owner have signed - maybe the client tried with an owner who has signed already
-	// check if signer count is more than threshold
-	//signers := multisigTx.Signers
-	//if int8(len(signers)) >= multisigTx.Threshold {
-	//	return nil, errors.New("signer count is more than threshold")
-	//}
+	signatureArgs := multisigTx.Alias + signer.Timestamp
+	signerAddr, err := s.getAddressFromSignature(signatureArgs, signer.Signature, false)
+	if err != nil {
+		return nil, errors.New("failed to retrieve address from signature")
+	}
+
+	isOwner, isSigner := s.isOwner(multisigTx, signerAddr)
+	if !isOwner {
+		return nil, errors.New("address is not an owner for this alias")
+	}
+	if isSigner {
+		return nil, errors.New("owner has already signed this alias")
+	}
 
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -232,7 +236,7 @@ func (s *MultisigService) SignMultisigTx(txId int64, signer *dto.SignTxArgs) (*m
 	if err != nil {
 		return nil, err
 	}
-	_, err = stmt.Exec(signer.Signature, true, multisigTx.Id, signerAddress)
+	_, err = stmt.Exec(signer.Signature, true, multisigTx.Id, signerAddr)
 	if err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			log.Printf("Execute statement failed: %v, unable to rollback: %v", err, rollbackErr)
@@ -296,9 +300,10 @@ func (s *MultisigService) doGetMultisigTx(txId int64, alias string, owner string
 			ownerAddress      sql.NullString
 			ownerSignature    sql.NullString
 			ownerIsSigner     sql.NullBool
+			ownerAddress2     sql.NullString
 		)
 
-		err := rows.Scan(&txId, &txAlias, &txThreshold, &txTransactionId, &txUnsignedTx, &ownerMultisigTxId, &ownerId, &ownerAddress, &ownerSignature, &ownerIsSigner)
+		err := rows.Scan(&txId, &txAlias, &txThreshold, &txTransactionId, &txUnsignedTx, &ownerMultisigTxId, &ownerId, &ownerAddress, &ownerSignature, &ownerIsSigner, &ownerAddress2)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -343,13 +348,13 @@ func (s *MultisigService) doGetMultisigTx(txId int64, alias string, owner string
 	return &result, nil
 }
 
-func (s *MultisigService) isOwner(multisigTx *model.MultisigTx, address string) bool {
+func (s *MultisigService) isOwner(multisigTx *model.MultisigTx, address string) (bool, bool) {
 	for _, owner := range multisigTx.Owners {
 		if owner.Address == address {
-			return true
+			return true, owner.Signature != ""
 		}
 	}
-	return false
+	return false, false
 }
 
 func (s *MultisigService) isCreatorOwner(owners []string, address string) bool {
@@ -371,17 +376,13 @@ func (s *MultisigService) getAliasInfo(alias string) (*model.AliasInfo, error) {
 	return aliasInfo, nil
 }
 
-func (s *MultisigService) contains(arr []string, str string) bool {
-	for _, v := range arr {
-		if v == str {
-			return true
-		}
+func (s *MultisigService) getAddressFromSignature(signatureArgs string, signature string, isHex bool) (string, error) {
+	var signatureArgsBytes []byte
+	if isHex {
+		signatureArgsBytes, _ = formatting.Decode(formatting.Hex, signatureArgs)
+	} else {
+		signatureArgsBytes = []byte(signatureArgs)
 	}
-	return false
-}
-
-func (s *MultisigService) getAddressFromSignature(signatureArgs string, signature string) (string, error) {
-	signatureArgsBytes, _ := formatting.Decode(formatting.Hex, signatureArgs)
 	signatureArgsHash := hashing.ComputeHash256(signatureArgsBytes)
 	signatureBytes, _ := formatting.Decode(formatting.Hex, signature)
 
