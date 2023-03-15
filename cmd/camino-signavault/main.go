@@ -24,11 +24,11 @@ func startRouter(cfg *util.Config) {
 	h := handler.NewMultisigHandler()
 
 	api.POST("/multisig", h.CreateMultisigTx)
-	api.GET("/multisig", h.GetAllMultisigTx)
-	api.GET("/multisig/:txId", h.GetMultisigTx)
+	//api.GET("/multisig", h.GetAllMultisigTx)
+	//api.GET("/multisig/:txId", h.GetMultisigTx)
 	api.POST("/multisig/:txId", h.CompleteMultisigTx)
-	api.PUT("/multisig/:txId", h.AddMultisigTxSigner)
-	api.GET("/multisig/alias/:alias", h.GetAllMultisigTxForAlias)
+	api.PUT("/multisig/:txId", h.SignMultisigTx)
+	api.GET("/multisig/:alias", h.GetAllMultisigTxForAlias)
 
 	err = router.Run(cfg.ListenerAddress)
 	if err != nil {

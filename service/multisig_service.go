@@ -112,10 +112,51 @@ func (s *MultisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 	return s.GetMultisigTx(txId)
 }
 
-func (s *MultisigService) UpdateMultisigTx(txId int64, completeTx *dto.CompleteTxArgs) (bool, error) {
+func (s *MultisigService) GetAllMultisigTxForAlias(alias string, timestamp string, signature string) (*[]model.MultisigTx, error) {
+	signatureArgs := alias + timestamp
+	owner, err := s.getAddressFromSignature(signatureArgs, signature)
+	if err != nil {
+		return nil, errors.New("failed to retrieve address from signature")
+	}
+
+	tx, err := s.doGetMultisigTx(-1, alias, owner)
+	if err != nil {
+		return nil, err
+	}
+	if len(*tx) <= 0 {
+		return &[]model.MultisigTx{}, nil
+	}
+
+	//ts, err := strconv.ParseInt(timestamp, 10, 64)
+	//if err != nil {
+	//	return nil, errors.New("error parsing timestamp")
+	//}
+
+	return tx, nil
+}
+
+// fixme: this is not used anymore
+//func (s *MultisigService) GetAllMultisigTx() (*[]model.MultisigTx, error) {
+//	tx, err := s.doGetMultisigTx("", -1)
+//	if err != nil {
+//		return nil, err
+//	}
+//	if len(*tx) <= 0 {
+//		return &[]model.MultisigTx{}, nil
+//	}
+//
+//	s.verifyOwner(tx, signature)
+//	s.isOwner(tx, signature)
+//
+//	return tx, nil
+//}
+
+func (s *MultisigService) CompleteMultisigTx(txId int64, completeTx *dto.CompleteTxArgs) (bool, error) {
 	if multisig, _ := s.GetMultisigTx(txId); multisig == nil {
 		return false, errors.New("no pending multisig tx found")
 	}
+
+	// todo verify signature
 
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -144,30 +185,8 @@ func (s *MultisigService) UpdateMultisigTx(txId int64, completeTx *dto.CompleteT
 	return true, nil
 }
 
-func (s *MultisigService) GetAllMultisigTx() (*[]model.MultisigTx, error) {
-	tx, err := s.doGetMultisigTx("", -1)
-	if err != nil {
-		return nil, err
-	}
-	if len(*tx) <= 0 {
-		return &[]model.MultisigTx{}, nil
-	}
-	return tx, nil
-}
-
-func (s *MultisigService) GetAllMultisigTxForAlias(alias string) (*[]model.MultisigTx, error) {
-	tx, err := s.doGetMultisigTx(alias, -1)
-	if err != nil {
-		return nil, err
-	}
-	if len(*tx) <= 0 {
-		return &[]model.MultisigTx{}, nil
-	}
-	return tx, nil
-}
-
 func (s *MultisigService) GetMultisigTx(txId int64) (*model.MultisigTx, error) {
-	tx, err := s.doGetMultisigTx("", txId)
+	tx, err := s.doGetMultisigTx(txId, "", "")
 	if err != nil {
 		return nil, err
 	}
@@ -178,11 +197,14 @@ func (s *MultisigService) GetMultisigTx(txId int64) (*model.MultisigTx, error) {
 	return &(*tx)[0], nil
 }
 
-func (s *MultisigService) AddMultisigTxSigner(txId int64, signer *dto.SignTxArgs) (*model.MultisigTx, error) {
+func (s *MultisigService) SignMultisigTx(txId int64, signer *dto.SignTxArgs) (*model.MultisigTx, error) {
+
 	multisigTx, err := s.GetMultisigTx(txId)
 	if err != nil {
 		return nil, err
 	}
+
+	// todo: verify signature
 
 	// check if signer signature or address is empty
 	if signer.Signature == "" {
@@ -228,7 +250,7 @@ func (s *MultisigService) AddMultisigTxSigner(txId int64, signer *dto.SignTxArgs
 	return s.GetMultisigTx(txId)
 }
 
-func (s *MultisigService) doGetMultisigTx(alias string, txId int64) (*[]model.MultisigTx, error) {
+func (s *MultisigService) doGetMultisigTx(txId int64, alias string, owner string) (*[]model.MultisigTx, error) {
 	var err error
 
 	query := "SELECT tx.id, " +
@@ -240,13 +262,15 @@ func (s *MultisigService) doGetMultisigTx(alias string, txId int64) (*[]model.Mu
 		"owners.id, " +
 		"owners.address, " +
 		"owners.signature, " +
-		"owners.is_signer " +
+		"owners.is_signer, " +
+		"owners2.address " +
 		"FROM multisig_tx AS tx " +
 		"LEFT JOIN multisig_tx_owners AS owners ON tx.id = owners.multisig_tx_id " +
-		"WHERE (tx.alias=? OR ?='') AND (tx.id=? OR ?=-1) AND tx.transaction_id IS NULL " +
+		"JOIN multisig_tx_owners AS owners2 ON tx.id = owners2.multisig_tx_id " +
+		"WHERE (tx.alias=? OR ?='') AND (tx.id=? OR ?=-1) AND (owners2.address = ? OR ?='') AND tx.transaction_id IS NULL " +
 		"ORDER BY tx.created_at ASC"
 
-	rows, err := s.db.Query(query, alias, alias, txId, txId)
+	rows, err := s.db.Query(query, alias, alias, txId, txId, owner, owner)
 	if err != nil {
 		return nil, err
 	}
@@ -356,12 +380,12 @@ func (s *MultisigService) contains(arr []string, str string) bool {
 	return false
 }
 
-func (s *MultisigService) getAddressFromSignature(unsignedTx string, signature string) (string, error) {
-	unsignedTxBytes, _ := formatting.Decode(formatting.Hex, unsignedTx)
-	txHash := hashing.ComputeHash256(unsignedTxBytes)
+func (s *MultisigService) getAddressFromSignature(signatureArgs string, signature string) (string, error) {
+	signatureArgsBytes, _ := formatting.Decode(formatting.Hex, signatureArgs)
+	signatureArgsHash := hashing.ComputeHash256(signatureArgsBytes)
 	signatureBytes, _ := formatting.Decode(formatting.Hex, signature)
 
-	pub, err := s.SECPFactory.RecoverHashPublicKey(txHash, signatureBytes)
+	pub, err := s.SECPFactory.RecoverHashPublicKey(signatureArgsHash, signatureBytes)
 	if err != nil {
 		return "", err
 	}

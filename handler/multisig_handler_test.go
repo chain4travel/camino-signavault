@@ -128,7 +128,7 @@ func TestMultisigHandler_AddMultisigTxSigner(t *testing.T) {
 			h := &MultisigHandler{
 				MultisigSvc: tt.fields.MultisigSvc,
 			}
-			h.AddMultisigTxSigner(tt.args.context)
+			h.SignMultisigTx(tt.args.context)
 		})
 	}
 }

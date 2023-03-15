@@ -163,7 +163,7 @@ func TestCreateMultisigTx(t *testing.T) {
 //	}
 //	tests := []result{}
 //	tests = append(tests, result{
-//		name: "AddMultisigTxSigner 1",
+//		name: "SignMultisigTx 1",
 //		args: args{
 //			id: int(id),
 //			signer: &model.MultisigTxOwner{
@@ -175,7 +175,7 @@ func TestCreateMultisigTx(t *testing.T) {
 //		wantErr: false,
 //	},
 //		result{
-//			name: "AddMultisigTxSigner 2 identical to 1",
+//			name: "SignMultisigTx 2 identical to 1",
 //			args: args{
 //				id: int(id),
 //				signer: &model.MultisigTxOwner{
@@ -190,13 +190,13 @@ func TestCreateMultisigTx(t *testing.T) {
 //	for _, tt := range tests {
 //		t.Run(tt.name, func(t *testing.T) {
 //			s := &MultisigService{db.Db{DB: conn}}
-//			got, err := s.AddMultisigTxSigner(tt.args.id, tt.args.signer)
+//			got, err := s.SignMultisigTx(tt.args.id, tt.args.signer)
 //			if (err != nil) != tt.wantErr {
-//				t.Errorf("AddMultisigTxSigner() error = %v, wantErr %v", err, tt.wantErr)
+//				t.Errorf("SignMultisigTx() error = %v, wantErr %v", err, tt.wantErr)
 //				return
 //			}
 //			if got != tt.want {
-//				t.Errorf("AddMultisigTxSigner() got = %v, want %v", got, tt.want)
+//				t.Errorf("SignMultisigTx() got = %v, want %v", got, tt.want)
 //			}
 //		})
 //	}
