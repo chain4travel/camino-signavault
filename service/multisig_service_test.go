@@ -3,13 +3,14 @@ package service
 import (
 	"context"
 	"database/sql"
-	"github.com/chain4travel/camino-signavault/dao"
-	"github.com/chain4travel/camino-signavault/model"
-	"github.com/stretchr/testify/mock"
 	"log"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/chain4travel/camino-signavault/dao"
+	"github.com/chain4travel/camino-signavault/model"
+	"github.com/stretchr/testify/mock"
 
 	"github.com/ava-labs/avalanchego/utils/hashing"
 
@@ -50,6 +51,11 @@ var mockAliasInfo = &model.AliasInfo{
 func (m *MockNodeService) GetMultisigAlias(alias string) (*model.AliasInfo, error) {
 	args := m.Called(alias)
 	return args.Get(0).(*model.AliasInfo), args.Error(1)
+}
+
+func (m *MockNodeService) GetTx(txID string) (*model.TxInfo, error) {
+	args := m.Called(txID)
+	return args.Get(0).(*model.TxInfo), args.Error(1)
 }
 
 var conn *sql.DB
@@ -169,7 +175,6 @@ func TestCreateMultisigTx(t *testing.T) {
 }
 
 func TestGetMultisigTx(t *testing.T) {
-
 	preFundedKeys := crypto.BuildTestKeys()
 	address := preFundedKeys[3].PublicKey().Address()
 	log.Print(address.String())
@@ -227,6 +232,75 @@ func TestGetMultisigTx(t *testing.T) {
 		})
 	}
 }
+
+//func TestCompleteMultisigTx(t *testing.T) {
+//	preFundedKeys := crypto.BuildTestKeys()
+//	address := preFundedKeys[3].PublicKey().Address()
+//	log.Print(address.String())
+//
+//	signer := preFundedKeys[3]
+//	id := 1
+//	txID := "2wKRJ8XKh8h7g2BKaDPXGjBwDJ3fMCuXrdCaeUgqpisJMwAui8"
+//	timestamp := "1678877386"
+//
+//	// Compute the hash of the payload
+//	hash := hashing.ComputeHash256([]byte(strconv.Itoa(id) + timestamp + txID))
+//
+//	// Sign the hash
+//	sig, err := signer.SignHash(hash)
+//	require.NoError(t, err)
+//	signature, err := formatting.Encode(formatting.Hex, sig[:])
+//	require.NoError(t, err)
+//
+//	type args struct {
+//		id         int64
+//		completeTx *dto.CompleteTxArgs
+//	}
+//	tests := []struct {
+//		name string
+//		args args
+//		err  error
+//	}{
+//		{
+//			name: "Happy path",
+//			args: args{
+//				id: 1,
+//				completeTx: &dto.CompleteTxArgs{
+//					TransactionId: txID,
+//					Signature:     signature,
+//					Timestamp:     timestamp,
+//				},
+//			},
+//		},
+//	}
+//	for _, tt := range tests {
+//		t.Run(tt.name, func(t *testing.T) {
+//			mockConfig := &util.Config{
+//				NetworkId: 1002,
+//			}
+//			mockNodeService := new(MockNodeService)
+//			mockNodeService.On("GetTx", tt.args.completeTx.TransactionId).Return(&model.TxInfo{
+//				Jsonrpc: "2.0",
+//				Result: struct {
+//					Tx       string `json:"tx"`
+//					Encoding string `json:"encoding"`
+//				}{
+//					Tx:       "0x000000",
+//					Encoding: "hex",
+//				},
+//				Id: 1,
+//			}, nil)
+//
+//			s := NewMultisigService(mockConfig, dao.NewMultisigTxDao(&db.Db{DB: conn}), mockNodeService)
+//			_, err := s.CompleteMultisigTx(tt.args.id, tt.args.completeTx)
+//			if tt.err != nil {
+//				require.Equal(t, tt.err, err)
+//			} else {
+//				require.NoError(t, err)
+//			}
+//		})
+//	}
+//}
 
 //func TestMultisigService_AddMultisigTxSigner(t *testing.T) {
 //
