@@ -1,10 +1,10 @@
 package service
 
 import (
-	"database/sql"
 	"errors"
 	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/utils/formatting/address"
+	"github.com/chain4travel/camino-signavault/dao"
 	"github.com/chain4travel/camino-signavault/util"
 	"log"
 	"strconv"
@@ -26,14 +26,18 @@ const (
 type MultisigService struct {
 	db          db.Db
 	SECPFactory crypto.FactorySECP256K1R
+	dao         *dao.MultisigTxDao
 }
 
 func NewMultisigService(db db.Db) *MultisigService {
+	txDao := dao.NewMultisigTxDao(db)
+
 	return &MultisigService{
 		db: db,
 		SECPFactory: crypto.FactorySECP256K1R{
 			Cache: cache.LRU{Size: defaultCacheSize},
 		},
+		dao: txDao,
 	}
 }
 
@@ -62,54 +66,11 @@ func (s *MultisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 		return nil, errors.New("creator of multisig transaction is not an owner")
 	}
 
-	tx, err := s.db.Begin()
+	id, err := s.dao.CreateMultisigTx(alias, threshold, unsignedTx, creator, signature, owners)
 	if err != nil {
 		return nil, err
 	}
-
-	stmt, err := tx.Prepare("INSERT INTO multisig_tx (alias, threshold, unsigned_tx) VALUES (?, ?, ?)")
-	if err != nil {
-		return nil, err
-	}
-	res, err := stmt.Exec(alias, threshold, unsignedTx)
-	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			log.Printf("Execute statement failed: %v, unable to rollback: %v", err, rollbackErr)
-		}
-		log.Print(err)
-		return nil, err
-	}
-	txId, _ := res.LastInsertId()
-
-	for _, owner := range owners {
-		isSigner := false
-		ownerSignature := ""
-		if owner == creator {
-			isSigner = true
-			ownerSignature = signature
-		}
-
-		stmt, err := tx.Prepare("INSERT INTO multisig_tx_owners (multisig_tx_id, address, signature, is_signer) VALUES (?, ?, ?, ?)")
-		if err != nil {
-			return nil, err
-		}
-		_, err = stmt.Exec(txId, owner, ownerSignature, isSigner)
-		if err != nil {
-			if rollbackErr := tx.Rollback(); rollbackErr != nil {
-				log.Printf("Execute statement failed: %v, unable to rollback: %v", err, rollbackErr)
-			}
-			log.Print(err)
-			return nil, err
-		}
-
-	}
-	err = tx.Commit()
-	if err != nil {
-		log.Printf("Commit failed: %v", err)
-		return nil, err
-	}
-
-	return s.GetMultisigTx(txId)
+	return s.GetMultisigTx(id)
 }
 
 func (s *MultisigService) GetAllMultisigTxForAlias(alias string, timestamp string, signature string) (*[]model.MultisigTx, error) {
@@ -119,7 +80,7 @@ func (s *MultisigService) GetAllMultisigTxForAlias(alias string, timestamp strin
 		return nil, errors.New("failed to retrieve address from signature")
 	}
 
-	tx, err := s.doGetMultisigTx(-1, alias, owner)
+	tx, err := s.dao.GetMultisigTx(-1, alias, owner)
 	if err != nil {
 		return nil, err
 	}
@@ -135,8 +96,8 @@ func (s *MultisigService) GetAllMultisigTxForAlias(alias string, timestamp strin
 	return tx, nil
 }
 
-func (s *MultisigService) CompleteMultisigTx(txId int64, completeTx *dto.CompleteTxArgs) (bool, error) {
-	multisigTx, err := s.GetMultisigTx(txId)
+func (s *MultisigService) CompleteMultisigTx(id int64, completeTx *dto.CompleteTxArgs) (bool, error) {
+	multisigTx, err := s.GetMultisigTx(id)
 	if err != nil {
 		return false, err
 	}
@@ -160,35 +121,15 @@ func (s *MultisigService) CompleteMultisigTx(txId int64, completeTx *dto.Complet
 		return false, errors.New("address is not an owner address for this alias")
 	}
 
-	tx, err := s.db.Begin()
+	completed, err := s.dao.UpdateTransactionId(id, completeTx.TransactionId)
 	if err != nil {
 		return false, err
 	}
-
-	stmt, err := tx.Prepare("UPDATE multisig_tx SET transaction_id = ? WHERE id = ? AND transaction_id IS NULL")
-	if err != nil {
-		return false, err
-	}
-	_, err = stmt.Exec(completeTx.TransactionId, txId)
-	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			log.Printf("Execute statement failed: %v, unable to rollback: %v", err, rollbackErr)
-		}
-		log.Print(err)
-		return false, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		log.Printf("Commit failed: %v", err)
-		return false, err
-	}
-
-	return true, nil
+	return completed, nil
 }
 
-func (s *MultisigService) GetMultisigTx(txId int64) (*model.MultisigTx, error) {
-	tx, err := s.doGetMultisigTx(txId, "", "")
+func (s *MultisigService) GetMultisigTx(id int64) (*model.MultisigTx, error) {
+	tx, err := s.dao.GetMultisigTx(id, "", "")
 	if err != nil {
 		return nil, err
 	}
@@ -199,8 +140,8 @@ func (s *MultisigService) GetMultisigTx(txId int64) (*model.MultisigTx, error) {
 	return &(*tx)[0], nil
 }
 
-func (s *MultisigService) SignMultisigTx(txId int64, signer *dto.SignTxArgs) (*model.MultisigTx, error) {
-	multisigTx, err := s.GetMultisigTx(txId)
+func (s *MultisigService) SignMultisigTx(id int64, signer *dto.SignTxArgs) (*model.MultisigTx, error) {
+	multisigTx, err := s.GetMultisigTx(id)
 	if err != nil {
 		return nil, err
 	}
@@ -227,151 +168,12 @@ func (s *MultisigService) SignMultisigTx(txId int64, signer *dto.SignTxArgs) (*m
 		return nil, errors.New("owner has already signed this alias")
 	}
 
-	tx, err := s.db.Begin()
+	_, err = s.dao.AddSigner(id, signerAddr, signer.Signature)
 	if err != nil {
 		return nil, err
 	}
 
-	stmt, err := tx.Prepare("UPDATE multisig_tx_owners SET signature = ?, is_signer = ? WHERE multisig_tx_id = ? AND address = ?")
-	if err != nil {
-		return nil, err
-	}
-	_, err = stmt.Exec(signer.Signature, true, multisigTx.Id, signerAddr)
-	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			log.Printf("Execute statement failed: %v, unable to rollback: %v", err, rollbackErr)
-		}
-		log.Print(err)
-		return nil, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		log.Printf("Commit failed: %v", err)
-		return nil, err
-	}
-
-	return s.GetMultisigTx(txId)
-}
-
-func (s *MultisigService) doGetMultisigTx(txId int64, alias string, owner string) (*[]model.MultisigTx, error) {
-	var err error
-
-	var query string
-	var rows *sql.Rows
-	if owner == "" {
-		query = "SELECT tx.id, " +
-			"tx.alias, " +
-			"tx.threshold, " +
-			"tx.transaction_id, " +
-			"tx.unsigned_tx, " +
-			"owners.multisig_tx_id, " +
-			"owners.id, " +
-			"owners.address, " +
-			"owners.signature, " +
-			"owners.is_signer " +
-			"FROM multisig_tx AS tx " +
-			"LEFT JOIN multisig_tx_owners AS owners ON tx.id = owners.multisig_tx_id " +
-			"WHERE (tx.alias=? OR ?='') AND (tx.id=? OR ?=-1) AND tx.transaction_id IS NULL " +
-			"ORDER BY tx.created_at ASC"
-		rows, err = s.db.Query(query, alias, alias, txId, txId)
-	} else {
-		query = "SELECT tx.id, " +
-			"tx.alias, " +
-			"tx.threshold, " +
-			"tx.transaction_id, " +
-			"tx.unsigned_tx, " +
-			"owners.multisig_tx_id, " +
-			"owners.id, " +
-			"owners.address, " +
-			"owners.signature, " +
-			"owners.is_signer, " +
-			"owners2.address " +
-			"FROM multisig_tx AS tx " +
-			"LEFT JOIN multisig_tx_owners AS owners ON tx.id = owners.multisig_tx_id " +
-			"JOIN multisig_tx_owners AS owners2 ON tx.id = owners2.multisig_tx_id " +
-			"WHERE (tx.alias=? OR ?='') AND (tx.id=? OR ?=-1) AND (owners2.address = ? OR ?='') AND tx.transaction_id IS NULL " +
-			"ORDER BY tx.created_at ASC"
-		rows, err = s.db.Query(query, alias, alias, txId, txId, owner, owner)
-	}
-
-	if err != nil {
-		return nil, err
-	}
-	defer func(rows *sql.Rows) {
-		err := rows.Close()
-		if err != nil {
-			log.Print(err)
-		}
-	}(rows)
-
-	var result []model.MultisigTx
-	multiSigTx := make(map[int64]model.MultisigTx)
-
-	for rows.Next() {
-		var (
-			txId              int64
-			txAlias           string
-			txThreshold       int8
-			txTransactionId   sql.NullString
-			txUnsignedTx      string
-			ownerMultisigTxId sql.NullInt64
-			ownerId           sql.NullInt64
-			ownerAddress      sql.NullString
-			ownerSignature    sql.NullString
-			ownerIsSigner     sql.NullBool
-			ownerAddress2     sql.NullString
-		)
-
-		var err error
-		if owner == "" {
-			err = rows.Scan(&txId, &txAlias, &txThreshold, &txTransactionId, &txUnsignedTx, &ownerMultisigTxId, &ownerId, &ownerAddress, &ownerSignature, &ownerIsSigner)
-		} else {
-			err = rows.Scan(&txId, &txAlias, &txThreshold, &txTransactionId, &txUnsignedTx, &ownerMultisigTxId, &ownerId, &ownerAddress, &ownerSignature, &ownerIsSigner, &ownerAddress2)
-		}
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		var tx model.MultisigTx
-		if _, ok := multiSigTx[txId]; ok {
-			tx = multiSigTx[txId]
-		} else {
-			tx = model.MultisigTx{
-				Id:            txId,
-				Alias:         txAlias,
-				Threshold:     txThreshold,
-				TransactionId: txTransactionId.String,
-				UnsignedTx:    txUnsignedTx,
-			}
-		}
-
-		owners := tx.Owners
-		if owners == nil {
-			owners = []model.MultisigTxOwner{}
-		}
-		// add owner
-		owner := model.MultisigTxOwner{
-			Id:           ownerId.Int64,
-			MultisigTxId: ownerMultisigTxId.Int64,
-			Address:      ownerAddress.String,
-			Signature:    ownerSignature.String,
-		}
-		owners = append(owners, owner)
-		tx.Owners = owners
-
-		multiSigTx[txId] = tx
-
-	}
-	err = rows.Err()
-	if err != nil {
-		log.Fatal(err)
-	}
-	// convert map to slice
-	for _, tx := range multiSigTx {
-		result = append(result, tx)
-	}
-	return &result, nil
+	return s.GetMultisigTx(id)
 }
 
 func (s *MultisigService) isOwner(multisigTx *model.MultisigTx, address string) (bool, bool) {
