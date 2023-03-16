@@ -13,19 +13,21 @@ import (
 )
 
 type NodeServiceInterface interface {
-	GetMultisigAlias(alias string) string
+	GetMultisigAlias(alias string) (*model.AliasInfo, error)
 }
 
 type NodeService struct {
+	config *util.Config
 }
 
-func NewNodeService() *NodeService {
-	return &NodeService{}
+func NewNodeService(config *util.Config) NodeServiceInterface {
+	return &NodeService{
+		config: config,
+	}
 }
 
 func (s *NodeService) GetMultisigAlias(alias string) (*model.AliasInfo, error) {
-	config := util.GetInstance()
-	requestURL := fmt.Sprintf("%s/ext/bc/P", config.CaminoNode)
+	requestURL := fmt.Sprintf("%s/ext/bc/P", s.config.CaminoNode)
 	bodyReader := strings.NewReader(`
 			{
 				"jsonrpc":"2.0",
@@ -52,7 +54,7 @@ func (s *NodeService) GetMultisigAlias(alias string) (*model.AliasInfo, error) {
 
 	var aliasInfo *model.AliasInfo
 
-	err = strictUnmarshal(resBody, &aliasInfo)
+	err = s.strictUnmarshal(resBody, &aliasInfo)
 	if err != nil {
 		return nil, errors.New("could not unmarshal alias info: " + err.Error())
 	}
@@ -60,7 +62,7 @@ func (s *NodeService) GetMultisigAlias(alias string) (*model.AliasInfo, error) {
 	return aliasInfo, nil
 }
 
-func strictUnmarshal(data []byte, v interface{}) error {
+func (s *NodeService) strictUnmarshal(data []byte, v interface{}) error {
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
 	return dec.Decode(v)

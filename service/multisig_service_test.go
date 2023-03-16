@@ -3,6 +3,9 @@ package service
 import (
 	"context"
 	"database/sql"
+	"github.com/chain4travel/camino-signavault/dao"
+	"github.com/chain4travel/camino-signavault/model"
+	"github.com/stretchr/testify/mock"
 	"log"
 	"os"
 	"testing"
@@ -13,7 +16,6 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/crypto"
 	"github.com/ava-labs/avalanchego/utils/formatting"
@@ -30,6 +32,25 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
+
+type MockNodeService struct {
+	mock.Mock
+}
+
+var mockAliasInfo = &model.AliasInfo{
+	Jsonrpc: "2.0",
+	Result: model.Result{
+		Memo:      "0x",
+		Addresses: []string{"P-kopernikus18jma8ppw3nhx5r4ap8clazz0dps7rv5uuvjh68", "P-kopernikus1g65uqn6t77p656w64023nh8nd9updzmxh8ttv3"},
+		Threshold: "2",
+	},
+	Id: 1,
+}
+
+func (m *MockNodeService) GetMultisigAlias(alias string) (*model.AliasInfo, error) {
+	args := m.Called(alias)
+	return args.Get(0).(*model.AliasInfo), args.Error(1)
+}
 
 var conn *sql.DB
 
@@ -129,12 +150,13 @@ func TestCreateMultisigTx(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &MultisigService{
-				db: db.Db{DB: conn},
-				SECPFactory: crypto.FactorySECP256K1R{
-					Cache: cache.LRU{Size: defaultCacheSize},
-				},
+			mockConfig := &util.Config{
+				NetworkId: 1002,
 			}
+			mockNodeService := new(MockNodeService)
+			mockNodeService.On("GetMultisigAlias", tt.args.multisigTx.Alias).Return(mockAliasInfo, nil)
+
+			s := NewMultisigService(mockConfig, dao.NewMultisigTxDao(&db.Db{DB: conn}), mockNodeService)
 
 			_, err := s.CreateMultisigTx(tt.args.multisigTx)
 			if tt.err != nil {
@@ -187,12 +209,14 @@ func TestGetMultisigTx(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &MultisigService{
-				db: db.Db{DB: conn},
-				SECPFactory: crypto.FactorySECP256K1R{
-					Cache: cache.LRU{Size: defaultCacheSize},
-				},
-			}
+			//s := &MultisigService{
+			//	db: db.Db{DB: conn},
+			//	secpFactory: crypto.FactorySECP256K1R{
+			//		Cache: cache.LRU{Size: defaultCacheSize},
+			//	},
+			//}
+			config := &util.Config{}
+			s := NewMultisigService(config, dao.NewMultisigTxDao(&db.Db{DB: conn}), NewNodeService(config))
 
 			_, err := s.GetAllMultisigTxForAlias(tt.args.msigAlias, tt.args.timestamp, tt.args.signature)
 			if tt.err != nil {
