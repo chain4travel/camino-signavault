@@ -113,7 +113,7 @@ func (h *MultisigHandler) GetAllMultisigTxForAlias(ctx *gin.Context) {
 
 func (h *MultisigHandler) SignMultisigTx(ctx *gin.Context) {
 	var err error
-	txId := h.parseIdParam(ctx.Param("txId"), ctx)
+	id := h.parseIdParam(ctx.Param("id"), ctx)
 
 	var signer *dto.SignTxArgs
 	err = ctx.BindJSON(&signer)
@@ -125,20 +125,20 @@ func (h *MultisigHandler) SignMultisigTx(ctx *gin.Context) {
 		return
 	}
 
-	_, err = h.MultisigSvc.SignMultisigTx(txId, signer)
+	_, err = h.MultisigSvc.SignMultisigTx(id, signer)
 	if err != nil {
 		ctx.JSON(400, gin.H{
-			"message": fmt.Sprintf("Error adding signer to multisig transaction with id %d", txId),
+			"message": fmt.Sprintf("Error adding signer to multisig transaction with id %d", id),
 			"error":   err.Error(),
 		})
 		return
 	}
-	multisigAlias, _ := h.MultisigSvc.GetMultisigTx(txId)
+	multisigAlias, _ := h.MultisigSvc.GetMultisigTx(id)
 	ctx.JSON(200, multisigAlias)
 }
 
 func (h *MultisigHandler) CompleteMultisigTx(ctx *gin.Context) {
-	txId := h.parseIdParam(ctx.Param("txId"), ctx)
+	id := h.parseIdParam(ctx.Param("id"), ctx)
 	var completeTxArgs *dto.CompleteTxArgs
 	err := ctx.BindJSON(&completeTxArgs)
 	if err != nil {
@@ -148,7 +148,7 @@ func (h *MultisigHandler) CompleteMultisigTx(ctx *gin.Context) {
 		})
 	}
 
-	_, err = h.MultisigSvc.CompleteMultisigTx(txId, completeTxArgs)
+	_, err = h.MultisigSvc.CompleteMultisigTx(id, completeTxArgs)
 	if err != nil {
 		ctx.JSON(400, gin.H{
 			"message": "Error completing multisig transaction",
