@@ -2,21 +2,24 @@ package handler
 
 import (
 	"fmt"
+	"github.com/chain4travel/camino-signavault/dao"
 	"github.com/chain4travel/camino-signavault/db"
 	"github.com/chain4travel/camino-signavault/dto"
 	"github.com/chain4travel/camino-signavault/service"
+	"github.com/chain4travel/camino-signavault/util"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
 )
 
 type MultisigHandler struct {
-	MultisigSvc *service.MultisigService
+	multisigService *service.MultisigService
 }
 
 func NewMultisigHandler() *MultisigHandler {
+	config := util.GetInstance()
 	return &MultisigHandler{
-		MultisigSvc: service.NewMultisigService(*db.GetInstance()),
+		multisigService: service.NewMultisigService(config, dao.NewMultisigTxDao(db.GetInstance()), service.NewNodeService(config)),
 	}
 }
 
@@ -30,7 +33,7 @@ func (h *MultisigHandler) CreateMultisigTx(ctx *gin.Context) {
 		})
 	}
 
-	response, err := h.MultisigSvc.CreateMultisigTx(args)
+	response, err := h.multisigService.CreateMultisigTx(args)
 	if err != nil {
 		ctx.JSON(400, gin.H{
 			"message": "Error creating new multisig transaction",
@@ -40,48 +43,6 @@ func (h *MultisigHandler) CreateMultisigTx(ctx *gin.Context) {
 	}
 	ctx.JSON(201, *response)
 }
-
-// fixme: not used
-//func (h *MultisigHandler) GetAllMultisigTx(ctx *gin.Context) {
-//	multisigTx, err := h.MultisigSvc.GetAllMultisigTx()
-//	if err != nil {
-//		ctx.JSON(400, gin.H{
-//			"message": "Error getting all multisig transactions",
-//			"error":   err.Error(),
-//		})
-//	}
-//	ctx.JSON(200, multisigTx)
-//}
-
-// fixme: not used
-//func (h *MultisigHandler) GetMultisigTx(ctx *gin.Context) {
-//	id := h.parseIdParam(ctx.Param("txId"), ctx)
-//	signature, b := ctx.GetQuery("signature")
-//	if !b {
-//		ctx.JSON(400, gin.H{
-//			"message": "Missing query parameter 'signature'",
-//			"error":   "missing query parameter",
-//		})
-//		return
-//	}
-//
-//	multisigTx, err := h.MultisigSvc.GetMultisigTx(id, signature)
-//	if err != nil {
-//		ctx.JSON(400, gin.H{
-//			"message": fmt.Sprintf("Error getting multisig transaction with id %s", id),
-//			"error":   err.Error(),
-//		})
-//	}
-//
-//	if multisigTx == nil {
-//		ctx.JSON(404, gin.H{
-//			"message": fmt.Sprintf("No pending multisig transaction found with id %s", id),
-//			"error":   "not found",
-//		})
-//		return
-//	}
-//	ctx.JSON(200, multisigTx)
-//}
 
 func (h *MultisigHandler) GetAllMultisigTxForAlias(ctx *gin.Context) {
 	alias := ctx.Param("alias")
@@ -94,7 +55,7 @@ func (h *MultisigHandler) GetAllMultisigTxForAlias(ctx *gin.Context) {
 		h.throwMissingQueryParamError(ctx, "timestamp")
 	}
 
-	multisigTx, err := h.MultisigSvc.GetAllMultisigTxForAlias(alias, timestamp, signature)
+	multisigTx, err := h.multisigService.GetAllMultisigTxForAlias(alias, timestamp, signature)
 	if err != nil {
 		ctx.JSON(400, gin.H{
 			"message": fmt.Sprintf("Error getting all multisig transactions for alias %s", alias),
@@ -125,7 +86,7 @@ func (h *MultisigHandler) SignMultisigTx(ctx *gin.Context) {
 		return
 	}
 
-	_, err = h.MultisigSvc.SignMultisigTx(id, signer)
+	_, err = h.multisigService.SignMultisigTx(id, signer)
 	if err != nil {
 		ctx.JSON(400, gin.H{
 			"message": fmt.Sprintf("Error adding signer to multisig transaction with id %d", id),
@@ -133,7 +94,7 @@ func (h *MultisigHandler) SignMultisigTx(ctx *gin.Context) {
 		})
 		return
 	}
-	multisigAlias, _ := h.MultisigSvc.GetMultisigTx(id)
+	multisigAlias, _ := h.multisigService.GetMultisigTx(id)
 	ctx.JSON(200, multisigAlias)
 }
 
@@ -148,7 +109,7 @@ func (h *MultisigHandler) CompleteMultisigTx(ctx *gin.Context) {
 		})
 	}
 
-	_, err = h.MultisigSvc.CompleteMultisigTx(id, completeTxArgs)
+	_, err = h.multisigService.CompleteMultisigTx(id, completeTxArgs)
 	if err != nil {
 		ctx.JSON(400, gin.H{
 			"message": "Error completing multisig transaction",

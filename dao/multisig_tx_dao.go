@@ -7,11 +7,17 @@ import (
 	"log"
 )
 
+type MultisigTxDaoInterface interface {
+	CreateMultisigTx(alias string, threshold int, unsignedTx string, creator string, signature string, owners []string) (int64, error)
+	GetMultisigTx(id int64, alias string, owner string) (*[]model.MultisigTx, error)
+	UpdateTransactionId(id int64, transactionId string) (bool, error)
+	AddSigner(id int64, signature string, signerAddress string) (bool, error)
+}
 type MultisigTxDao struct {
-	db db.Db
+	db *db.Db
 }
 
-func NewMultisigTxDao(db db.Db) *MultisigTxDao {
+func NewMultisigTxDao(db *db.Db) MultisigTxDaoInterface {
 	return &MultisigTxDao{
 		db: db,
 	}

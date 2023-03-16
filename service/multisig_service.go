@@ -14,7 +14,6 @@ import (
 	"github.com/ava-labs/avalanchego/utils/formatting"
 	"github.com/ava-labs/avalanchego/utils/hashing"
 
-	"github.com/chain4travel/camino-signavault/db"
 	"github.com/chain4travel/camino-signavault/dto"
 	"github.com/chain4travel/camino-signavault/model"
 )
@@ -24,20 +23,20 @@ const (
 )
 
 type MultisigService struct {
-	db          db.Db
-	SECPFactory crypto.FactorySECP256K1R
-	dao         *dao.MultisigTxDao
+	config      *util.Config
+	secpFactory crypto.FactorySECP256K1R
+	dao         dao.MultisigTxDaoInterface
+	nodeService NodeServiceInterface
 }
 
-func NewMultisigService(db db.Db) *MultisigService {
-	txDao := dao.NewMultisigTxDao(db)
-
+func NewMultisigService(config *util.Config, dao dao.MultisigTxDaoInterface, nodeService NodeServiceInterface) *MultisigService {
 	return &MultisigService{
-		db: db,
-		SECPFactory: crypto.FactorySECP256K1R{
+		config: config,
+		secpFactory: crypto.FactorySECP256K1R{
 			Cache: cache.LRU{Size: defaultCacheSize},
 		},
-		dao: txDao,
+		dao:         dao,
+		nodeService: nodeService,
 	}
 }
 
@@ -190,8 +189,7 @@ func (s *MultisigService) isCreatorOwner(owners []string, address string) bool {
 }
 
 func (s *MultisigService) getAliasInfo(alias string) (*model.AliasInfo, error) {
-	nodeService := NewNodeService()
-	aliasInfo, err := nodeService.GetMultisigAlias(alias)
+	aliasInfo, err := s.nodeService.GetMultisigAlias(alias)
 	if err != nil {
 		log.Printf("Getting info for alias %s failed: %v", alias, err)
 		return nil, err
@@ -209,13 +207,12 @@ func (s *MultisigService) getAddressFromSignature(signatureArgs string, signatur
 	signatureArgsHash := hashing.ComputeHash256(signatureArgsBytes)
 	signatureBytes, _ := formatting.Decode(formatting.Hex, signature)
 
-	pub, err := s.SECPFactory.RecoverHashPublicKey(signatureArgsHash, signatureBytes)
+	pub, err := s.secpFactory.RecoverHashPublicKey(signatureArgsHash, signatureBytes)
 	if err != nil {
 		return "", err
 	}
 
-	config := util.GetInstance()
-	hrp := constants.NetworkIDToHRP[config.NetworkId]
+	hrp := constants.NetworkIDToHRP[s.config.NetworkId]
 	bech32Address, err := address.FormatBech32(hrp, pub.Address().Bytes())
 	if err != nil {
 		return "", err
