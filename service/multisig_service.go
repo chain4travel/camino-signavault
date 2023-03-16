@@ -2,12 +2,16 @@ package service
 
 import (
 	"errors"
-	"github.com/ava-labs/avalanchego/utils/constants"
-	"github.com/ava-labs/avalanchego/utils/formatting/address"
-	"github.com/chain4travel/camino-signavault/dao"
-	"github.com/chain4travel/camino-signavault/util"
 	"log"
 	"strconv"
+
+	"github.com/ava-labs/avalanchego/vms/platformvm/txs"
+
+	"github.com/chain4travel/camino-signavault/dao"
+
+	"github.com/ava-labs/avalanchego/utils/constants"
+	"github.com/ava-labs/avalanchego/utils/formatting/address"
+	"github.com/chain4travel/camino-signavault/util"
 
 	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/utils/crypto"
@@ -16,6 +20,11 @@ import (
 
 	"github.com/chain4travel/camino-signavault/dto"
 	"github.com/chain4travel/camino-signavault/model"
+)
+
+var (
+	errFailedToVerifyTX = errors.New("failed to verify transaction on chain: %w")
+	errTxNotVerified    = errors.New("multisig transaction is not verified on chain")
 )
 
 const (
@@ -163,6 +172,15 @@ func (s *MultisigService) CompleteMultisigTx(id int64, completeTx *dto.CompleteT
 		return false, errors.New("address is not an owner address for this alias")
 	}
 
+	isTxVerified, err := s.verifyTx(multisigTx, completeTx.TransactionId)
+	if err != nil {
+		log.Print(err)
+		return false, errFailedToVerifyTX
+	}
+	if !isTxVerified {
+		return false, errTxNotVerified
+	}
+
 	completed, err := s.dao.UpdateTransactionId(id, completeTx.TransactionId)
 	if err != nil {
 		return false, err
@@ -219,4 +237,30 @@ func (s *MultisigService) getAddressFromSignature(signatureArgs string, signatur
 	}
 
 	return "P-" + bech32Address, nil
+}
+
+func (s *MultisigService) verifyTx(multisigTx *model.MultisigTx, txID string) (bool, error) {
+	txRes, err := s.nodeService.GetTx(txID)
+	if err != nil {
+		return false, err
+	}
+
+	txBytes, err := formatting.Decode(formatting.Hex, txRes.Result.Tx)
+	if err != nil {
+		return false, err
+	}
+
+	var tx txs.Tx
+	_, err = txs.Codec.Unmarshal(txBytes, &tx)
+	if err != nil {
+		return false, err
+	}
+
+	utxBytes := tx.Unsigned.Bytes()
+	utxString, err := formatting.Encode(formatting.Hex, utxBytes)
+	if err != nil {
+		return false, err
+	}
+
+	return utxString == multisigTx.UnsignedTx, nil
 }
