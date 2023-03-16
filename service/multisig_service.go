@@ -257,24 +257,44 @@ func (s *MultisigService) SignMultisigTx(txId int64, signer *dto.SignTxArgs) (*m
 func (s *MultisigService) doGetMultisigTx(txId int64, alias string, owner string) (*[]model.MultisigTx, error) {
 	var err error
 
-	query := "SELECT tx.id, " +
-		"tx.alias, " +
-		"tx.threshold, " +
-		"tx.transaction_id, " +
-		"tx.unsigned_tx, " +
-		"owners.multisig_tx_id, " +
-		"owners.id, " +
-		"owners.address, " +
-		"owners.signature, " +
-		"owners.is_signer, " +
-		"owners2.address " +
-		"FROM multisig_tx AS tx " +
-		"LEFT JOIN multisig_tx_owners AS owners ON tx.id = owners.multisig_tx_id " +
-		"JOIN multisig_tx_owners AS owners2 ON tx.id = owners2.multisig_tx_id " +
-		"WHERE (tx.alias=? OR ?='') AND (tx.id=? OR ?=-1) AND (owners2.address = ? OR ?='') AND tx.transaction_id IS NULL " +
-		"ORDER BY tx.created_at ASC"
+	var query string
+	var rows *sql.Rows
+	if owner == "" {
+		query = "SELECT tx.id, " +
+			"tx.alias, " +
+			"tx.threshold, " +
+			"tx.transaction_id, " +
+			"tx.unsigned_tx, " +
+			"owners.multisig_tx_id, " +
+			"owners.id, " +
+			"owners.address, " +
+			"owners.signature, " +
+			"owners.is_signer " +
+			"FROM multisig_tx AS tx " +
+			"LEFT JOIN multisig_tx_owners AS owners ON tx.id = owners.multisig_tx_id " +
+			"WHERE (tx.alias=? OR ?='') AND (tx.id=? OR ?=-1) AND tx.transaction_id IS NULL " +
+			"ORDER BY tx.created_at ASC"
+		rows, err = s.db.Query(query, alias, alias, txId, txId)
+	} else {
+		query = "SELECT tx.id, " +
+			"tx.alias, " +
+			"tx.threshold, " +
+			"tx.transaction_id, " +
+			"tx.unsigned_tx, " +
+			"owners.multisig_tx_id, " +
+			"owners.id, " +
+			"owners.address, " +
+			"owners.signature, " +
+			"owners.is_signer, " +
+			"owners2.address " +
+			"FROM multisig_tx AS tx " +
+			"LEFT JOIN multisig_tx_owners AS owners ON tx.id = owners.multisig_tx_id " +
+			"JOIN multisig_tx_owners AS owners2 ON tx.id = owners2.multisig_tx_id " +
+			"WHERE (tx.alias=? OR ?='') AND (tx.id=? OR ?=-1) AND (owners2.address = ? OR ?='') AND tx.transaction_id IS NULL " +
+			"ORDER BY tx.created_at ASC"
+		rows, err = s.db.Query(query, alias, alias, txId, txId, owner, owner)
+	}
 
-	rows, err := s.db.Query(query, alias, alias, txId, txId, owner, owner)
 	if err != nil {
 		return nil, err
 	}
@@ -303,10 +323,16 @@ func (s *MultisigService) doGetMultisigTx(txId int64, alias string, owner string
 			ownerAddress2     sql.NullString
 		)
 
-		err := rows.Scan(&txId, &txAlias, &txThreshold, &txTransactionId, &txUnsignedTx, &ownerMultisigTxId, &ownerId, &ownerAddress, &ownerSignature, &ownerIsSigner, &ownerAddress2)
+		var err error
+		if owner == "" {
+			err = rows.Scan(&txId, &txAlias, &txThreshold, &txTransactionId, &txUnsignedTx, &ownerMultisigTxId, &ownerId, &ownerAddress, &ownerSignature, &ownerIsSigner)
+		} else {
+			err = rows.Scan(&txId, &txAlias, &txThreshold, &txTransactionId, &txUnsignedTx, &ownerMultisigTxId, &ownerId, &ownerAddress, &ownerSignature, &ownerIsSigner, &ownerAddress2)
+		}
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		var tx model.MultisigTx
 		if _, ok := multiSigTx[txId]; ok {
 			tx = multiSigTx[txId]
