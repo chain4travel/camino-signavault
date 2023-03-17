@@ -139,7 +139,7 @@ func (s *MultisigService) SignMultisigTx(id int64, signer *dto.SignTxArgs) (*mod
 		return nil, errors.New("owner has already signed this alias")
 	}
 
-	_, err = s.dao.AddSigner(id, signerAddr, signer.Signature)
+	_, err = s.dao.AddSigner(id, signer.Signature, signerAddr)
 	if err != nil {
 		return nil, err
 	}
