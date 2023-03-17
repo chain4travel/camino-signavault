@@ -5,16 +5,26 @@ import (
 	"database/sql"
 	"log"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/utils/crypto"
 	"github.com/ava-labs/avalanchego/utils/formatting"
+	"github.com/ava-labs/avalanchego/utils/formatting/address"
+	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ava-labs/avalanchego/vms/components/avax"
 	"github.com/ava-labs/avalanchego/vms/platformvm/txs"
 	"github.com/ava-labs/avalanchego/vms/secp256k1fx"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/mysql"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -93,19 +103,15 @@ func TestMain(m *testing.M) {
 	code = m.Run()
 }
 
-func TestCreateMultisigTx(t *testing.T) {
-	preFundedKeys := crypto.BuildTestKeys()
-	address := preFundedKeys[3].PublicKey().Address()
-	log.Print(address.String())
+const networkId = uint32(1002)
 
-	signers := [][]*crypto.PrivateKeySECP256K1R{
-		{preFundedKeys[3]},
-	}
+func TestCreateMultisigTx(t *testing.T) {
+	signer := getSigner(3)
 
 	// Create a tx
 	unsignedAddressStateTx := &txs.AddressStateTx{
 		BaseTx: txs.BaseTx{BaseTx: avax.BaseTx{
-			NetworkID:    uint32(12345),
+			NetworkID:    networkId,
 			BlockchainID: ids.ID{1},
 			Outs:         []*avax.TransferableOutput{},
 			Ins:          []*avax.TransferableInput{},
@@ -113,7 +119,7 @@ func TestCreateMultisigTx(t *testing.T) {
 	}
 
 	// Sign the tx
-	tx, err := txs.NewSigned(unsignedAddressStateTx, txs.Codec, signers)
+	tx, err := txs.NewSigned(unsignedAddressStateTx, txs.Codec, [][]*crypto.PrivateKeySECP256K1R{{signer}})
 	require.NoError(t, err)
 
 	// Get the unsigned tx bytes
