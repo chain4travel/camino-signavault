@@ -37,6 +37,14 @@ const (
 	defaultCacheSize = 256
 )
 
+type MultisigServiceInterface interface {
+	CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (*model.MultisigTx, error)
+	GetAllMultisigTxForAlias(alias string, timestamp string, signature string) (*[]model.MultisigTx, error)
+	GetMultisigTx(id int64) (*model.MultisigTx, error)
+	SignMultisigTx(id int64, signer *dto.SignTxArgs) (*model.MultisigTx, error)
+	CompleteMultisigTx(id int64, completeTx *dto.CompleteTxArgs) (bool, error)
+}
+
 type MultisigService struct {
 	config      *util.Config
 	secpFactory crypto.FactorySECP256K1R
@@ -44,7 +52,7 @@ type MultisigService struct {
 	nodeService NodeServiceInterface
 }
 
-func NewMultisigService(config *util.Config, dao dao.MultisigTxDaoInterface, nodeService NodeServiceInterface) *MultisigService {
+func NewMultisigService(config *util.Config, dao dao.MultisigTxDaoInterface, nodeService NodeServiceInterface) MultisigServiceInterface {
 	return &MultisigService{
 		config: config,
 		secpFactory: crypto.FactorySECP256K1R{
