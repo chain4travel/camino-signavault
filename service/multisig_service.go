@@ -25,6 +25,12 @@ import (
 var (
 	errFailedToVerifyTX = errors.New("failed to verify transaction on chain: %w")
 	errTxNotVerified    = errors.New("multisig transaction is not verified on chain")
+	errEmptySignature   = errors.New("signature is empty")
+	errEmptyTimestamp   = errors.New("timestamp is empty")
+	errParsingSignature = errors.New("failed to retrieve address from signature")
+	errAddressNotOwner  = errors.New("address is not an owner for this alias")
+	errOwnerHasSigned   = errors.New("owner has already signed this alias")
+	errThresholdParsing = errors.New("threshold is not a number")
 )
 
 const (
@@ -62,16 +68,16 @@ func (s *MultisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 	unsignedTx := multisigTxArgs.UnsignedTx
 	creator, err := s.getAddressFromSignature(unsignedTx, signature, true)
 	if err != nil {
-		return nil, errors.New("failed to retrieve address from signature")
+		return nil, errParsingSignature
 	}
 	threshold, err := strconv.Atoi(aliasInfo.Result.Threshold)
 	if err != nil {
-		return nil, errors.New("threshold is not a number")
+		return nil, errThresholdParsing
 	}
 	owners := aliasInfo.Result.Addresses
 
 	if !s.isCreatorOwner(owners, creator) {
-		return nil, errors.New("creator of multisig transaction is not an owner")
+		return nil, errAddressNotOwner
 	}
 
 	id, err := s.dao.CreateMultisigTx(alias, threshold, unsignedTx, creator, signature, owners)
@@ -85,7 +91,7 @@ func (s *MultisigService) GetAllMultisigTxForAlias(alias string, timestamp strin
 	signatureArgs := alias + timestamp
 	owner, err := s.getAddressFromSignature(signatureArgs, signature, false)
 	if err != nil {
-		return nil, errors.New("failed to retrieve address from signature")
+		return nil, errParsingSignature
 	}
 
 	tx, err := s.dao.GetMultisigTx(-1, alias, owner)
@@ -118,25 +124,25 @@ func (s *MultisigService) SignMultisigTx(id int64, signer *dto.SignTxArgs) (*mod
 	}
 
 	if signer.Signature == "" {
-		return nil, errors.New("signature is empty")
+		return nil, errEmptySignature
 	}
 
 	if signer.Timestamp == "" {
-		return nil, errors.New("timestamp is empty")
+		return nil, errEmptyTimestamp
 	}
 
 	signatureArgs := strconv.FormatInt(id, 10) + signer.Timestamp
 	signerAddr, err := s.getAddressFromSignature(signatureArgs, signer.Signature, false)
 	if err != nil {
-		return nil, errors.New("failed to retrieve address from signature")
+		return nil, errParsingSignature
 	}
 
 	isOwner, isSigner := s.isOwner(multisigTx, signerAddr)
 	if !isOwner {
-		return nil, errors.New("address is not an owner for this alias")
+		return nil, errAddressNotOwner
 	}
 	if isSigner {
-		return nil, errors.New("owner has already signed this alias")
+		return nil, errOwnerHasSigned
 	}
 
 	_, err = s.dao.AddSigner(id, signer.Signature, signerAddr)
@@ -154,22 +160,22 @@ func (s *MultisigService) CompleteMultisigTx(id int64, completeTx *dto.CompleteT
 	}
 
 	if completeTx.Signature == "" {
-		return false, errors.New("signature is empty")
+		return false, errEmptySignature
 	}
 
 	if completeTx.Timestamp == "" {
-		return false, errors.New("timestamp is empty")
+		return false, errEmptyTimestamp
 	}
 
 	signatureArgs := strconv.FormatInt(id, 10) + completeTx.Timestamp + completeTx.TransactionId
 	signerAddr, err := s.getAddressFromSignature(signatureArgs, completeTx.Signature, false)
 	if err != nil {
-		return false, errors.New("failed to retrieve address from signature")
+		return false, errParsingSignature
 	}
 
 	isOwner, _ := s.isOwner(multisigTx, signerAddr)
 	if !isOwner {
-		return false, errors.New("address is not an owner address for this alias")
+		return false, errAddressNotOwner
 	}
 
 	isTxVerified, err := s.verifyTx(multisigTx, completeTx.TransactionId)
