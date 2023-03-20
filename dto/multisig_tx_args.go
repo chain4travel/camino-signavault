@@ -8,7 +8,6 @@ type MultisigTxArgs struct {
 
 type SignTxArgs struct {
 	Signature string `json:"signature"`
-	Timestamp string `json:"timestamp"`
 }
 
 type CompleteTxArgs struct {

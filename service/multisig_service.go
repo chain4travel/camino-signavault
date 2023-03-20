@@ -23,8 +23,9 @@ import (
 )
 
 var (
-	errFailedToVerifyTX = errors.New("failed to verify transaction on chain: %w")
+	errFailedToVerifyTX = errors.New("failed to verify transaction on chain")
 	errTxNotVerified    = errors.New("multisig transaction is not verified on chain")
+	errTxNotExists      = errors.New("multisig transaction does not exist")
 	errEmptySignature   = errors.New("signature is empty")
 	errEmptyTimestamp   = errors.New("timestamp is empty")
 	errParsingSignature = errors.New("failed to retrieve address from signature")
@@ -119,7 +120,7 @@ func (s *MultisigService) GetMultisigTx(id int64) (*model.MultisigTx, error) {
 		return nil, err
 	}
 	if len(*tx) <= 0 {
-		return nil, nil
+		return nil, errTxNotExists
 	}
 
 	return &(*tx)[0], nil
@@ -135,12 +136,7 @@ func (s *MultisigService) SignMultisigTx(id int64, signer *dto.SignTxArgs) (*mod
 		return nil, errEmptySignature
 	}
 
-	if signer.Timestamp == "" {
-		return nil, errEmptyTimestamp
-	}
-
-	signatureArgs := strconv.FormatInt(id, 10) + signer.Timestamp
-	signerAddr, err := s.getAddressFromSignature(signatureArgs, signer.Signature, false)
+	signerAddr, err := s.getAddressFromSignature(multisigTx.UnsignedTx, signer.Signature, true)
 	if err != nil {
 		return nil, errParsingSignature
 	}

@@ -8,24 +8,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/chain4travel/camino-signavault/dao"
-	"github.com/chain4travel/camino-signavault/model"
-	"github.com/stretchr/testify/mock"
-
-	"github.com/ava-labs/avalanchego/utils/hashing"
-
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/stretchr/testify/require"
-
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/crypto"
 	"github.com/ava-labs/avalanchego/utils/formatting"
+	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ava-labs/avalanchego/vms/components/avax"
 	"github.com/ava-labs/avalanchego/vms/platformvm/txs"
 	"github.com/ava-labs/avalanchego/vms/secp256k1fx"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
+	"github.com/chain4travel/camino-signavault/dao"
 	"github.com/chain4travel/camino-signavault/db"
 	"github.com/chain4travel/camino-signavault/dto"
+	"github.com/chain4travel/camino-signavault/model"
 	"github.com/chain4travel/camino-signavault/test"
 	"github.com/chain4travel/camino-signavault/util"
 
