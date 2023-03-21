@@ -7,23 +7,23 @@ import (
 	"log"
 )
 
-type MultisigTxDaoInterface interface {
+type MultisigTxDao interface {
 	CreateMultisigTx(alias string, threshold int, unsignedTx string, creator string, signature string, owners []string) (int64, error)
 	GetMultisigTx(id int64, alias string, owner string) (*[]model.MultisigTx, error)
 	UpdateTransactionId(id int64, transactionId string) (bool, error)
 	AddSigner(id int64, signature string, signerAddress string) (bool, error)
 }
-type MultisigTxDao struct {
+type multisigTxDao struct {
 	db *db.Db
 }
 
-func NewMultisigTxDao(db *db.Db) MultisigTxDaoInterface {
-	return &MultisigTxDao{
+func NewMultisigTxDao(db *db.Db) MultisigTxDao {
+	return &multisigTxDao{
 		db: db,
 	}
 }
 
-func (d *MultisigTxDao) CreateMultisigTx(alias string, threshold int, unsignedTx string, creator string, signature string, owners []string) (int64, error) {
+func (d *multisigTxDao) CreateMultisigTx(alias string, threshold int, unsignedTx string, creator string, signature string, owners []string) (int64, error) {
 	tx, err := d.db.Begin()
 	if err != nil {
 		return -1, err
@@ -74,7 +74,7 @@ func (d *MultisigTxDao) CreateMultisigTx(alias string, threshold int, unsignedTx
 	return txId, nil
 }
 
-func (d *MultisigTxDao) GetMultisigTx(id int64, alias string, owner string) (*[]model.MultisigTx, error) {
+func (d *multisigTxDao) GetMultisigTx(id int64, alias string, owner string) (*[]model.MultisigTx, error) {
 	var err error
 
 	var query string
@@ -194,7 +194,7 @@ func (d *MultisigTxDao) GetMultisigTx(id int64, alias string, owner string) (*[]
 	return &result, nil
 }
 
-func (d *MultisigTxDao) UpdateTransactionId(id int64, transactionId string) (bool, error) {
+func (d *multisigTxDao) UpdateTransactionId(id int64, transactionId string) (bool, error) {
 	tx, err := d.db.Begin()
 	if err != nil {
 		return false, err
@@ -222,7 +222,7 @@ func (d *MultisigTxDao) UpdateTransactionId(id int64, transactionId string) (boo
 	return true, nil
 }
 
-func (d *MultisigTxDao) AddSigner(id int64, signature string, signerAddress string) (bool, error) {
+func (d *multisigTxDao) AddSigner(id int64, signature string, signerAddress string) (bool, error) {
 	tx, err := d.db.Begin()
 	if err != nil {
 		return false, err

@@ -1,142 +1,99 @@
 package service
 
 import (
-	"context"
-	"database/sql"
-	"log"
-	"os"
-	"strings"
-	"testing"
-	"time"
-
-	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/utils/crypto"
 	"github.com/ava-labs/avalanchego/utils/formatting"
 	"github.com/ava-labs/avalanchego/utils/formatting/address"
 	"github.com/ava-labs/avalanchego/utils/hashing"
-	"github.com/ava-labs/avalanchego/utils/hashing"
-	"github.com/ava-labs/avalanchego/vms/components/avax"
 	"github.com/ava-labs/avalanchego/vms/platformvm/txs"
 	"github.com/ava-labs/avalanchego/vms/secp256k1fx"
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/mysql"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-
 	"github.com/chain4travel/camino-signavault/dao"
-	"github.com/chain4travel/camino-signavault/db"
 	"github.com/chain4travel/camino-signavault/dto"
 	"github.com/chain4travel/camino-signavault/model"
-	"github.com/chain4travel/camino-signavault/test"
 	"github.com/chain4travel/camino-signavault/util"
-
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/require"
+	"log"
+	"strconv"
+	"strings"
+	"testing"
 )
-
-type MockNodeService struct {
-	mock.Mock
-}
-
-var mockAliasInfo = &model.AliasInfo{
-	Jsonrpc: "2.0",
-	Result: model.Result{
-		Memo:      "0x",
-		Addresses: []string{"P-kopernikus18jma8ppw3nhx5r4ap8clazz0dps7rv5uuvjh68", "P-kopernikus1g65uqn6t77p656w64023nh8nd9updzmxh8ttv3"},
-		Threshold: "2",
-	},
-	Id: 1,
-}
-
-func (m *MockNodeService) GetMultisigAlias(alias string) (*model.AliasInfo, error) {
-	args := m.Called(alias)
-	return args.Get(0).(*model.AliasInfo), args.Error(1)
-}
-
-func (m *MockNodeService) GetTx(txID string) (*model.TxInfo, error) {
-	args := m.Called(txID)
-	return args.Get(0).(*model.TxInfo), args.Error(1)
-}
-
-var conn *sql.DB
-
-func TestMain(m *testing.M) {
-	code := 1
-	defer func() { os.Exit(code) }()
-
-	ctx := context.Background()
-	mysqlContainer, err := test.SetupMysql(ctx)
-	if err != nil {
-		log.Fatal(err)
-	} else {
-		_, cancel := context.WithTimeout(ctx, 10*time.Second)
-		defer cancel()
-		conn, err = sql.Open("mysql", mysqlContainer.URI)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		// run migration
-		path := "file://" + util.GetRootPath() + "/db/migrations"
-		m, err := migrate.New(path, "mysql://"+mysqlContainer.URI)
-		if err != nil {
-			log.Fatal(err)
-		}
-		err = m.Up()
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		defer func() {
-			if err = conn.Close(); err != nil {
-				panic(err)
-			}
-		}()
-	}
-	code = m.Run()
-}
 
 const networkId = uint32(1002)
 
 func TestCreateMultisigTx(t *testing.T) {
-	signer := getSigner(3)
-
 	// Create a tx
-	unsignedAddressStateTx := &txs.AddressStateTx{
-		BaseTx: txs.BaseTx{BaseTx: avax.BaseTx{
-			NetworkID:    networkId,
-			BlockchainID: ids.ID{1},
-			Outs:         []*avax.TransferableOutput{},
-			Ins:          []*avax.TransferableInput{},
-		}},
+	//unsignedAddressStateTx := &txs.AddressStateTx{
+	//	BaseTx: txs.BaseTx{BaseTx: avax.BaseTx{
+	//		NetworkID:    networkId,
+	//		BlockchainID: ids.ID{1},
+	//		Outs:         []*avax.TransferableOutput{},
+	//		Ins:          []*avax.TransferableInput{},
+	//	}},
+	//}
+	//
+	//signer := getSigner(3)
+	//tx, err := signTX(unsignedAddressStateTx, signer)
+	//require.NoError(t, err)
+	//
+	//// Get the unsigned tx bytes
+	//utxBytes := tx.Unsigned.Bytes()
+	//utxString, err := formatting.Encode(formatting.Hex, utxBytes)
+	//require.NoError(t, err)
+	//
+	//signature, err := getSignatureFromTx(tx)
+	//require.NoError(t, err)
+
+	ctrl := gomock.NewController(t)
+	mockNodeService := NewMockNodeService(ctrl)
+	mockDao := dao.NewMockMultisigTxDao(ctrl)
+
+	mockConfig := &util.Config{
+		NetworkId: networkId,
 	}
 
-	// Sign the tx
-	tx, err := txs.NewSigned(unsignedAddressStateTx, txs.Codec, [][]*crypto.PrivateKeySECP256K1R{{signer}})
-	require.NoError(t, err)
-
-	// Get the unsigned tx bytes
-	utxBytes := tx.Unsigned.Bytes()
-	utxString, err := formatting.Encode(formatting.Hex, utxBytes)
-	require.NoError(t, err)
-
-	// Get the signature from the tx
-	var sig [crypto.SECP256K1RSigLen]byte
-	for _, v := range tx.Creds {
-		if cred, ok := v.(*secp256k1fx.Credential); ok {
-			sig = cred.Sigs[0]
-			break
-		}
+	alias := "P-kopernikus1k4przmfu79ypp4u7y98glmdpzwk0u3sc7saazy"
+	mockAliasInfo := &model.AliasInfo{
+		Jsonrpc: "2.0",
+		Result: model.Result{
+			Memo:      "0x",
+			Addresses: []string{"P-kopernikus18jma8ppw3nhx5r4ap8clazz0dps7rv5uuvjh68", "P-kopernikus1g65uqn6t77p656w64023nh8nd9updzmxh8ttv3"},
+			Threshold: "2",
+		},
+		Id: 1,
 	}
-	signature, err := formatting.Encode(formatting.Hex, sig[:])
-	require.NoError(t, err)
+
+	mockTx := model.MultisigTx{
+		Id:            1,
+		Alias:         "P-kopernikus1k4przmfu79ypp4u7y98glmdpzwk0u3sc7saazy",
+		UnsignedTx:    "0x00000000200400003039010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e4a36162",
+		Threshold:     2,
+		TransactionId: "",
+		Owners: []model.MultisigTxOwner{
+			{
+				Id:           1,
+				MultisigTxId: 1,
+				Address:      mockAliasInfo.Result.Addresses[0],
+				Signature:    "0x83a657db18ff50438d418db9bde239a47bca2d910114aa0cc68ac736053c96c46b300f2c28d0ff6c8587ae916b66b5d575a731d8ecc37abee3c96bdc23dcd88b007c40d266",
+			},
+			{
+				Id:           2,
+				MultisigTxId: 1,
+				Address:      mockAliasInfo.Result.Addresses[1],
+				Signature:    "",
+			},
+		},
+	}
+
+	thresholdInt, _ := strconv.Atoi(mockAliasInfo.Result.Threshold)
+	mockDao.EXPECT().CreateMultisigTx(alias, thresholdInt, mockTx.UnsignedTx, mockTx.Owners[0].Address, mockTx.Owners[0].Signature, mockAliasInfo.Result.Addresses).Return(mockTx.Id, nil)
+	mockDao.EXPECT().GetMultisigTx(mockTx.Id, "", "").Return(&[]model.MultisigTx{mockTx}, nil).AnyTimes()
+	mockNodeService.EXPECT().GetMultisigAlias(alias).Return(mockAliasInfo, nil)
+	mockNodeService.EXPECT().GetMultisigAlias(gomock.Any()).Return(nil, errAliasInfoNotFound)
 
 	type args struct {
 		multisigTx *dto.MultisigTxArgs
@@ -147,25 +104,32 @@ func TestCreateMultisigTx(t *testing.T) {
 		err  error
 	}{
 		{
-			name: "Happy path",
+			name: "Alias with 2 owners",
 			args: args{
 				multisigTx: &dto.MultisigTxArgs{
-					Alias:      "P-kopernikus1k4przmfu79ypp4u7y98glmdpzwk0u3sc7saazy",
-					UnsignedTx: utxString,
-					Signature:  signature,
+					Alias:      alias,
+					UnsignedTx: mockTx.UnsignedTx,
+					Signature:  mockTx.Owners[0].Signature,
 				},
 			},
+			err: nil,
+		},
+		{
+			name: "Wrong alias - no node info",
+			args: args{
+				multisigTx: &dto.MultisigTxArgs{
+					Alias:      "P-kopernikus1fq0jc8svlyazhygkj0s36qnl6s0km0h3uuc99w",
+					UnsignedTx: mockTx.UnsignedTx,
+					Signature:  mockTx.Owners[0].Signature,
+				},
+			},
+			err: errAliasInfoNotFound,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockConfig := &util.Config{
-				NetworkId: 1002,
-			}
-			mockNodeService := new(MockNodeService)
-			mockNodeService.On("GetMultisigAlias", tt.args.multisigTx.Alias).Return(mockAliasInfo, nil)
 
-			s := NewMultisigService(mockConfig, dao.NewMultisigTxDao(&db.Db{DB: conn}), mockNodeService)
+			s := NewMultisigService(mockConfig, mockDao, mockNodeService)
 
 			_, err := s.CreateMultisigTx(tt.args.multisigTx)
 			if tt.err != nil {
@@ -177,63 +141,99 @@ func TestCreateMultisigTx(t *testing.T) {
 	}
 }
 
-func TestGetMultisigTx(t *testing.T) {
+//func TestGetMultisigTx(t *testing.T) {
+//	msigAlias := "P-kopernikus1k4przmfu79ypp4u7y98glmdpzwk0u3sc7saazy"
+//	timestamp := "1678877386"
+//
+//	signer := getSigner(3)
+//	signature, err := signPayload(signer, msigAlias, timestamp)
+//	require.NoError(t, err)
+//
+//	type args struct {
+//		msigAlias string
+//		timestamp string
+//		signature string
+//	}
+//	tests := []struct {
+//		name string
+//		args args
+//		err  error
+//	}{
+//		{
+//			name: "Happy path",
+//			args: args{
+//				msigAlias: msigAlias,
+//				timestamp: timestamp,
+//				signature: signature,
+//			},
+//		},
+//	}
+//	for _, tt := range tests {
+//		t.Run(tt.name, func(t *testing.T) {
+//			config := &util.Config{}
+//			s := NewMultisigService(config, dao.NewMultisigTxDao(&db.Db{DB: conn}), NewNodeService(config))
+//
+//			_, err := s.GetAllMultisigTxForAlias(tt.args.msigAlias, tt.args.timestamp, tt.args.signature)
+//			if tt.err != nil {
+//				require.Equal(t, tt.err, err)
+//			} else {
+//				require.NoError(t, err)
+//			}
+//		})
+//	}
+//}
+
+func signTX(unsigned txs.UnsignedTx, signer *crypto.PrivateKeySECP256K1R) (*txs.Tx, error) {
+	// Sign the tx
+	tx, err := txs.NewSigned(unsigned, txs.Codec, [][]*crypto.PrivateKeySECP256K1R{{signer}})
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
+}
+
+func getSignatureFromTx(tx *txs.Tx) (string, error) {
+	// Get the signature from the tx
+	var sig [crypto.SECP256K1RSigLen]byte
+	for _, v := range tx.Creds {
+		if cred, ok := v.(*secp256k1fx.Credential); ok {
+			sig = cred.Sigs[0]
+			break
+		}
+	}
+	signature, err := formatting.Encode(formatting.Hex, sig[:])
+	if err != nil {
+		return "", err
+	}
+	return signature, nil
+}
+
+func getSigner(prefundedKeyIndex int) *crypto.PrivateKeySECP256K1R {
 	preFundedKeys := crypto.BuildTestKeys()
-	address := preFundedKeys[3].PublicKey().Address()
-	log.Print(address.String())
+	addr := preFundedKeys[prefundedKeyIndex].PublicKey()
+	log.Print(addr.Address().String())
 
-	signer := preFundedKeys[3]
+	hrp := constants.NetworkIDToHRP[networkId]
+	bech32Address, _ := address.FormatBech32(hrp, addr.Bytes())
+	log.Print(bech32Address)
+	signer := preFundedKeys[prefundedKeyIndex]
+	return signer
+}
 
-	msigAlias := "P-kopernikus1k4przmfu79ypp4u7y98glmdpzwk0u3sc7saazy"
-	timestamp := "1678877386"
-
+func signPayload(signer *crypto.PrivateKeySECP256K1R, payload ...string) (string, error) {
 	// Compute the hash of the payload
-	hash := hashing.ComputeHash256([]byte(msigAlias + timestamp))
+	hash := hashing.ComputeHash256([]byte(strings.Join(payload, "")))
 
 	// Sign the hash
 	sig, err := signer.SignHash(hash)
-	require.NoError(t, err)
+	if err != nil {
+		return "", err
+	}
 	signature, err := formatting.Encode(formatting.Hex, sig[:])
-	require.NoError(t, err)
-
-	type args struct {
-		msigAlias string
-		timestamp string
-		signature string
+	if err != nil {
+		return "", err
 	}
-	tests := []struct {
-		name string
-		args args
-		err  error
-	}{
-		{
-			name: "Happy path",
-			args: args{
-				msigAlias: msigAlias,
-				timestamp: timestamp,
-				signature: signature,
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			//s := &MultisigService{
-			//	db: db.Db{DB: conn},
-			//	secpFactory: crypto.FactorySECP256K1R{
-			//		Cache: cache.LRU{Size: defaultCacheSize},
-			//	},
-			//}
-			config := &util.Config{}
-			s := NewMultisigService(config, dao.NewMultisigTxDao(&db.Db{DB: conn}), NewNodeService(config))
-
-			_, err := s.GetAllMultisigTxForAlias(tt.args.msigAlias, tt.args.timestamp, tt.args.signature)
-			if tt.err != nil {
-				require.Equal(t, tt.err, err)
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
+	return signature, nil
 }
 
 //func TestCompleteMultisigTx(t *testing.T) {

@@ -38,7 +38,7 @@ const (
 	defaultCacheSize = 256
 )
 
-type MultisigServiceInterface interface {
+type MultisigService interface {
 	CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (*model.MultisigTx, error)
 	GetAllMultisigTxForAlias(alias string, timestamp string, signature string) (*[]model.MultisigTx, error)
 	GetMultisigTx(id int64) (*model.MultisigTx, error)
@@ -46,15 +46,15 @@ type MultisigServiceInterface interface {
 	CompleteMultisigTx(id int64, completeTx *dto.CompleteTxArgs) (bool, error)
 }
 
-type MultisigService struct {
+type multisigService struct {
 	config      *util.Config
 	secpFactory crypto.FactorySECP256K1R
-	dao         dao.MultisigTxDaoInterface
-	nodeService NodeServiceInterface
+	dao         dao.MultisigTxDao
+	nodeService NodeService
 }
 
-func NewMultisigService(config *util.Config, dao dao.MultisigTxDaoInterface, nodeService NodeServiceInterface) MultisigServiceInterface {
-	return &MultisigService{
+func NewMultisigService(config *util.Config, dao dao.MultisigTxDao, nodeService NodeService) MultisigService {
+	return &multisigService{
 		config: config,
 		secpFactory: crypto.FactorySECP256K1R{
 			Cache: cache.LRU{Size: defaultCacheSize},
@@ -64,7 +64,7 @@ func NewMultisigService(config *util.Config, dao dao.MultisigTxDaoInterface, nod
 	}
 }
 
-func (s *MultisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (*model.MultisigTx, error) {
+func (s *multisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (*model.MultisigTx, error) {
 	var err error
 
 	alias := multisigTxArgs.Alias
@@ -96,7 +96,7 @@ func (s *MultisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 	return s.GetMultisigTx(id)
 }
 
-func (s *MultisigService) GetAllMultisigTxForAlias(alias string, timestamp string, signature string) (*[]model.MultisigTx, error) {
+func (s *multisigService) GetAllMultisigTxForAlias(alias string, timestamp string, signature string) (*[]model.MultisigTx, error) {
 	signatureArgs := alias + timestamp
 	owner, err := s.getAddressFromSignature(signatureArgs, signature, false)
 	if err != nil {
@@ -114,7 +114,7 @@ func (s *MultisigService) GetAllMultisigTxForAlias(alias string, timestamp strin
 	return tx, nil
 }
 
-func (s *MultisigService) GetMultisigTx(id int64) (*model.MultisigTx, error) {
+func (s *multisigService) GetMultisigTx(id int64) (*model.MultisigTx, error) {
 	tx, err := s.dao.GetMultisigTx(id, "", "")
 	if err != nil {
 		return nil, err
@@ -126,7 +126,7 @@ func (s *MultisigService) GetMultisigTx(id int64) (*model.MultisigTx, error) {
 	return &(*tx)[0], nil
 }
 
-func (s *MultisigService) SignMultisigTx(id int64, signer *dto.SignTxArgs) (*model.MultisigTx, error) {
+func (s *multisigService) SignMultisigTx(id int64, signer *dto.SignTxArgs) (*model.MultisigTx, error) {
 	multisigTx, err := s.GetMultisigTx(id)
 	if err != nil {
 		return nil, err
@@ -157,7 +157,7 @@ func (s *MultisigService) SignMultisigTx(id int64, signer *dto.SignTxArgs) (*mod
 	return s.GetMultisigTx(id)
 }
 
-func (s *MultisigService) CompleteMultisigTx(id int64, completeTx *dto.CompleteTxArgs) (bool, error) {
+func (s *multisigService) CompleteMultisigTx(id int64, completeTx *dto.CompleteTxArgs) (bool, error) {
 	multisigTx, err := s.GetMultisigTx(id)
 	if err != nil {
 		return false, err
@@ -198,7 +198,7 @@ func (s *MultisigService) CompleteMultisigTx(id int64, completeTx *dto.CompleteT
 	return completed, nil
 }
 
-func (s *MultisigService) isOwner(multisigTx *model.MultisigTx, address string) (bool, bool) {
+func (s *multisigService) isOwner(multisigTx *model.MultisigTx, address string) (bool, bool) {
 	for _, owner := range multisigTx.Owners {
 		if owner.Address == address {
 			return true, owner.Signature != ""
@@ -207,7 +207,7 @@ func (s *MultisigService) isOwner(multisigTx *model.MultisigTx, address string) 
 	return false, false
 }
 
-func (s *MultisigService) isCreatorOwner(owners []string, address string) bool {
+func (s *multisigService) isCreatorOwner(owners []string, address string) bool {
 	for _, owner := range owners {
 		if owner == address {
 			return true
@@ -216,7 +216,7 @@ func (s *MultisigService) isCreatorOwner(owners []string, address string) bool {
 	return false
 }
 
-func (s *MultisigService) getAliasInfo(alias string) (*model.AliasInfo, error) {
+func (s *multisigService) getAliasInfo(alias string) (*model.AliasInfo, error) {
 	aliasInfo, err := s.nodeService.GetMultisigAlias(alias)
 	if err != nil {
 		log.Printf("Getting info for alias %s failed: %v", alias, err)
@@ -225,7 +225,7 @@ func (s *MultisigService) getAliasInfo(alias string) (*model.AliasInfo, error) {
 	return aliasInfo, nil
 }
 
-func (s *MultisigService) getAddressFromSignature(signatureArgs string, signature string, isHex bool) (string, error) {
+func (s *multisigService) getAddressFromSignature(signatureArgs string, signature string, isHex bool) (string, error) {
 	var signatureArgsBytes []byte
 	if isHex {
 		signatureArgsBytes, _ = formatting.Decode(formatting.Hex, signatureArgs)
@@ -249,7 +249,7 @@ func (s *MultisigService) getAddressFromSignature(signatureArgs string, signatur
 	return "P-" + bech32Address, nil
 }
 
-func (s *MultisigService) verifyTx(multisigTx *model.MultisigTx, txID string) (bool, error) {
+func (s *multisigService) verifyTx(multisigTx *model.MultisigTx, txID string) (bool, error) {
 	txRes, err := s.nodeService.GetTx(txID)
 	if err != nil {
 		return false, err
