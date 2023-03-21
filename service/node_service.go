@@ -13,22 +13,26 @@ import (
 	"github.com/chain4travel/camino-signavault/util"
 )
 
-type NodeServiceInterface interface {
+var (
+	errAliasInfoNotFound = errors.New("could not find alias info from node - alias does not exist")
+)
+
+type NodeService interface {
 	GetMultisigAlias(alias string) (*model.AliasInfo, error)
 	GetTx(txID string) (*model.TxInfo, error)
 }
 
-type NodeService struct {
+type nodeService struct {
 	config *util.Config
 }
 
-func NewNodeService(config *util.Config) NodeServiceInterface {
-	return &NodeService{
+func NewNodeService(config *util.Config) NodeService {
+	return &nodeService{
 		config: config,
 	}
 }
 
-func (s *NodeService) GetMultisigAlias(alias string) (*model.AliasInfo, error) {
+func (s *nodeService) GetMultisigAlias(alias string) (*model.AliasInfo, error) {
 	requestURL := fmt.Sprintf("%s/ext/bc/P", s.config.CaminoNode)
 	bodyReader := strings.NewReader(`
 			{
@@ -58,13 +62,13 @@ func (s *NodeService) GetMultisigAlias(alias string) (*model.AliasInfo, error) {
 
 	err = s.strictUnmarshal(resBody, &aliasInfo)
 	if err != nil {
-		return nil, errors.New("could not unmarshal alias info: " + err.Error())
+		return nil, errAliasInfoNotFound
 	}
 
 	return aliasInfo, nil
 }
 
-func (s *NodeService) GetTx(txID string) (*model.TxInfo, error) {
+func (s *nodeService) GetTx(txID string) (*model.TxInfo, error) {
 	config := util.GetInstance()
 	requestURL := fmt.Sprintf("%s/ext/bc/P", config.CaminoNode)
 	bodyReader := strings.NewReader(`
@@ -102,7 +106,7 @@ func (s *NodeService) GetTx(txID string) (*model.TxInfo, error) {
 	return txInfo, nil
 }
 
-func (s *NodeService) strictUnmarshal(data []byte, v interface{}) error {
+func (s *nodeService) strictUnmarshal(data []byte, v interface{}) error {
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
 	return dec.Decode(v)

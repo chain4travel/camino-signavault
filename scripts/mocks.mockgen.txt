@@ -1,0 +1,2 @@
+github.com/chain4travel/camino-signavault/service=NodeService=service/mock_node_service.go
+github.com/chain4travel/camino-signavault/dao=MultisigTxDao=dao/mock_multisig_tx_dao.go

@@ -13,7 +13,7 @@ import (
 )
 
 type MultisigHandler struct {
-	multisigService service.MultisigServiceInterface
+	multisigService service.MultisigService
 }
 
 func NewMultisigHandler() *MultisigHandler {
