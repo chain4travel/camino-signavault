@@ -31,6 +31,7 @@ func (h *MultisigHandler) CreateMultisigTx(ctx *gin.Context) {
 			"message": "Error parsing multisig transaction from JSON",
 			"error":   err.Error(),
 		})
+		return
 	}
 
 	response, err := h.multisigService.CreateMultisigTx(args)
@@ -49,10 +50,12 @@ func (h *MultisigHandler) GetAllMultisigTxForAlias(ctx *gin.Context) {
 	signature, b := ctx.GetQuery("signature")
 	if !b {
 		h.throwMissingQueryParamError(ctx, "signature")
+		return
 	}
 	timestamp, b := ctx.GetQuery("timestamp")
 	if !b {
 		h.throwMissingQueryParamError(ctx, "timestamp")
+		return
 	}
 
 	multisigTx, err := h.multisigService.GetAllMultisigTxForAlias(alias, timestamp, signature)
@@ -61,6 +64,7 @@ func (h *MultisigHandler) GetAllMultisigTxForAlias(ctx *gin.Context) {
 			"message": fmt.Sprintf("Error getting all multisig transactions for alias %s", alias),
 			"error":   err.Error(),
 		})
+		return
 	}
 	if multisigTx == nil {
 		ctx.JSON(404, gin.H{
@@ -107,6 +111,7 @@ func (h *MultisigHandler) CompleteMultisigTx(ctx *gin.Context) {
 			"message": "Error parsing JSON for completing multisig transaction",
 			"error":   err.Error(),
 		})
+		return
 	}
 
 	_, err = h.multisigService.CompleteMultisigTx(id, completeTxArgs)

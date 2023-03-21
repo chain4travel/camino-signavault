@@ -75,6 +75,7 @@ func (s *multisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 
 	signature := multisigTxArgs.Signature
 	unsignedTx := multisigTxArgs.UnsignedTx
+	outputOwners := multisigTxArgs.OutputOwners
 	creator, err := s.getAddressFromSignature(unsignedTx, signature, true)
 	if err != nil {
 		return nil, errParsingSignature
@@ -89,7 +90,7 @@ func (s *multisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 		return nil, errAddressNotOwner
 	}
 
-	id, err := s.dao.CreateMultisigTx(alias, threshold, unsignedTx, creator, signature, owners)
+	id, err := s.dao.CreateMultisigTx(alias, threshold, unsignedTx, creator, signature, outputOwners, owners)
 	if err != nil {
 		return nil, err
 	}
