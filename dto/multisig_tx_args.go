@@ -1,13 +1,14 @@
 package dto
 
 type MultisigTxArgs struct {
-	Alias      string `json:"alias"`
-	UnsignedTx string `json:"unsignedTx"`
-	Signature  string `json:"signature"`
+	Alias        string `json:"alias" binding:"required"`
+	UnsignedTx   string `json:"unsignedTx" binding:"required"`
+	Signature    string `json:"signature" binding:"required"`
+	OutputOwners string `json:"outputOwners" binding:"required"`
 }
 
 type SignTxArgs struct {
-	Signature string `json:"signature"`
+	Signature string `json:"signature" binding:"required"`
 }
 
 type CompleteTxArgs struct {

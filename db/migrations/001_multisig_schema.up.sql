@@ -5,6 +5,7 @@ CREATE TABLE multisig_tx
     alias          CHAR(51)     NOT NULL,
     threshold      INT          NOT NULL,
     transaction_id CHAR(51)     NULL,
+    output_owners  VARCHAR(255) NOT NULL,
     created_at     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id)
 );
