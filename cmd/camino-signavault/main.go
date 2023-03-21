@@ -1,10 +1,11 @@
 package main
 
 import (
+	"log"
+
 	"github.com/chain4travel/camino-signavault/handler"
 	"github.com/chain4travel/camino-signavault/util"
 	"github.com/gin-gonic/gin"
-	"log"
 )
 
 func main() {
@@ -13,7 +14,7 @@ func main() {
 }
 
 func startRouter(cfg *util.Config) {
-	//gin.SetMode(gin.DebugMode)
+	// gin.SetMode(gin.DebugMode)
 	router := gin.Default()
 	err := router.SetTrustedProxies(nil)
 	if err != nil {
@@ -24,7 +25,7 @@ func startRouter(cfg *util.Config) {
 	h := handler.NewMultisigHandler()
 
 	api.POST("/multisig", h.CreateMultisigTx)
-	api.POST("/multisig/:id", h.CompleteMultisigTx)
+	api.POST("/multisig/issue", h.IssueMultisigTx)
 	api.PUT("/multisig/:id", h.SignMultisigTx)
 	api.GET("/multisig/:alias", h.GetAllMultisigTxForAlias)
 

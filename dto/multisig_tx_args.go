@@ -11,8 +11,11 @@ type SignTxArgs struct {
 	Signature string `json:"signature" binding:"required"`
 }
 
-type CompleteTxArgs struct {
-	TransactionId string `json:"transactionId"`
-	Signature     string `json:"signature"`
-	Timestamp     string `json:"timestamp"`
+type IssueTxArgs struct {
+	SignedTx  string `json:"signedTx" binding:"required"`
+	Signature string `json:"signature" binding:"required"`
+}
+
+type IssueTxResponse struct {
+	TxID string `json:"txID"`
 }

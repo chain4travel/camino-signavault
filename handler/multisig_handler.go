@@ -2,6 +2,8 @@ package handler
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/chain4travel/camino-signavault/dao"
 	"github.com/chain4travel/camino-signavault/db"
 	"github.com/chain4travel/camino-signavault/dto"
@@ -101,27 +103,26 @@ func (h *MultisigHandler) SignMultisigTx(ctx *gin.Context) {
 	ctx.JSON(200, multisigAlias)
 }
 
-func (h *MultisigHandler) CompleteMultisigTx(ctx *gin.Context) {
-	id := ctx.Param("id")
-	var completeTxArgs *dto.CompleteTxArgs
-	err := ctx.BindJSON(&completeTxArgs)
+func (h *MultisigHandler) IssueMultisigTx(ctx *gin.Context) {
+	var issueTxArgs *dto.IssueTxArgs
+	err := ctx.BindJSON(&issueTxArgs)
 	if err != nil {
 		ctx.JSON(400, gin.H{
-			"message": "Error parsing JSON for completing multisig transaction",
+			"message": "Error parsing JSON for issuing multisig transaction",
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	_, err = h.multisigService.CompleteMultisigTx(id, completeTxArgs)
+	txID, err := h.multisigService.IssueMultisigTx(issueTxArgs)
 	if err != nil {
 		ctx.JSON(400, gin.H{
-			"message": "Error completing multisig transaction",
+			"message": "Error issuing multisig transaction",
 			"error":   err.Error(),
 		})
 		return
 	}
-	ctx.Status(http.StatusNoContent)
+	ctx.JSON(200, &dto.IssueTxResponse{TxID: txID.String()})
 }
 
 func (h *MultisigHandler) throwMissingQueryParamError(ctx *gin.Context, param string) {

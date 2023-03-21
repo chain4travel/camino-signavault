@@ -7,6 +7,7 @@ package service
 import (
 	reflect "reflect"
 
+	ids "github.com/ava-labs/avalanchego/ids"
 	model "github.com/chain4travel/camino-signavault/model"
 	gomock "github.com/golang/mock/gomock"
 )
@@ -49,17 +50,17 @@ func (mr *MockNodeServiceMockRecorder) GetMultisigAlias(arg0 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMultisigAlias", reflect.TypeOf((*MockNodeService)(nil).GetMultisigAlias), arg0)
 }
 
-// GetTx mocks base method.
-func (m *MockNodeService) GetTx(arg0 string) (*model.TxInfo, error) {
+// IssueTx mocks base method.
+func (m *MockNodeService) IssueTx(arg0 []byte) (ids.ID, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTx", arg0)
-	ret0, _ := ret[0].(*model.TxInfo)
+	ret := m.ctrl.Call(m, "IssueTx", arg0)
+	ret0, _ := ret[0].(ids.ID)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetTx indicates an expected call of GetTx.
-func (mr *MockNodeServiceMockRecorder) GetTx(arg0 interface{}) *gomock.Call {
+// IssueTx indicates an expected call of IssueTx.
+func (mr *MockNodeServiceMockRecorder) IssueTx(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTx", reflect.TypeOf((*MockNodeService)(nil).GetTx), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IssueTx", reflect.TypeOf((*MockNodeService)(nil).IssueTx), arg0)
 }
