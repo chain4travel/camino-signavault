@@ -6,29 +6,24 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/ava-labs/avalanchego/vms/platformvm/txs"
-
-	"github.com/chain4travel/camino-signavault/dao"
-
-	"github.com/ava-labs/avalanchego/utils/constants"
-	"github.com/ava-labs/avalanchego/utils/formatting/address"
-	"github.com/chain4travel/camino-signavault/util"
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/ava-labs/avalanchego/cache"
+	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/utils/crypto"
-	"github.com/ava-labs/avalanchego/utils/formatting"
+	"github.com/ava-labs/avalanchego/utils/formatting/address"
 	"github.com/ava-labs/avalanchego/utils/hashing"
-
+	"github.com/ava-labs/avalanchego/vms/platformvm/txs"
+	"github.com/chain4travel/camino-signavault/dao"
 	"github.com/chain4travel/camino-signavault/dto"
 	"github.com/chain4travel/camino-signavault/model"
+	"github.com/chain4travel/camino-signavault/util"
 )
 
 var (
-	errFailedToVerifyTX = errors.New("failed to verify transaction on chain")
-	errTxNotVerified    = errors.New("multisig transaction is not verified on chain")
 	errTxNotExists      = errors.New("multisig transaction does not exist")
 	errEmptySignature   = errors.New("signature is empty")
-	errEmptyTimestamp   = errors.New("timestamp is empty")
 	errParsingSignature = errors.New("failed to retrieve address from signature")
 	errAddressNotOwner  = errors.New("address is not an owner for this alias")
 	errOwnerHasSigned   = errors.New("owner has already signed this alias")
@@ -45,7 +40,7 @@ type MultisigService interface {
 	GetAllMultisigTxForAlias(alias string, timestamp string, signature string) (*[]model.MultisigTx, error)
 	GetMultisigTx(id string) (*model.MultisigTx, error)
 	SignMultisigTx(id string, signer *dto.SignTxArgs) (*model.MultisigTx, error)
-	CompleteMultisigTx(id string, completeTx *dto.CompleteTxArgs) (bool, error)
+	IssueMultisigTx(issueTxArgs *dto.IssueTxArgs) (ids.ID, error)
 }
 
 type multisigService struct {
@@ -119,7 +114,7 @@ func (s *multisigService) GetAllMultisigTxForAlias(alias string, timestamp strin
 
 	tx, err := s.dao.GetMultisigTx("", alias, owner)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("couldn't get txs for alias %s: %w", alias, err)
 	}
 	if len(*tx) <= 0 {
 		return &[]model.MultisigTx{}, nil
@@ -171,45 +166,36 @@ func (s *multisigService) SignMultisigTx(id string, signer *dto.SignTxArgs) (*mo
 	return s.GetMultisigTx(id)
 }
 
-func (s *multisigService) CompleteMultisigTx(id string, completeTx *dto.CompleteTxArgs) (bool, error) {
-	multisigTx, err := s.GetMultisigTx(id)
+func (s *multisigService) IssueMultisigTx(sendTxArgs *dto.IssueTxArgs) (ids.ID, error) {
+	tx, err := s.unmarshalTx(sendTxArgs.SignedTx)
 	if err != nil {
-		return false, err
+		return ids.Empty, err
 	}
 
-	if completeTx.Signature == "" {
-		return false, errEmptySignature
-	}
+	utxHash := hashing.ComputeHash256(tx.Unsigned.Bytes())
+	utxHashStr := fmt.Sprintf("%x", utxHash)
 
-	if completeTx.Timestamp == "" {
-		return false, errEmptyTimestamp
-	}
-
-	signatureArgs := id + completeTx.Timestamp + completeTx.TransactionId
-	signerAddr, err := s.getAddressFromSignature(signatureArgs, completeTx.Signature, false)
+	storedTx, err := s.GetMultisigTx(utxHashStr)
 	if err != nil {
-		return false, errParsingSignature
+		return ids.Empty, err
 	}
 
-	isOwner, _ := s.isOwner(multisigTx, signerAddr)
+	signerAddr, err := s.getAddressFromSignature(storedTx.UnsignedTx, sendTxArgs.Signature, true)
+	if err != nil {
+		return ids.Empty, errParsingSignature
+	}
+
+	isOwner, _ := s.isOwner(storedTx, signerAddr)
 	if !isOwner {
-		return false, errAddressNotOwner
+		return ids.Empty, errAddressNotOwner
 	}
 
-	isTxVerified, err := s.verifyTx(multisigTx, completeTx.TransactionId)
+	txID, err := s.nodeService.IssueTx(tx.Bytes())
+	_, err = s.dao.UpdateTransactionId(utxHashStr, txID.String())
 	if err != nil {
-		log.Print(err)
-		return false, errFailedToVerifyTX
+		return ids.Empty, err
 	}
-	if !isTxVerified {
-		return false, errTxNotVerified
-	}
-
-	completed, err := s.dao.UpdateTransactionId(id, completeTx.TransactionId)
-	if err != nil {
-		return false, err
-	}
-	return completed, nil
+	return txID, nil
 }
 
 func (s *multisigService) isOwner(multisigTx *model.MultisigTx, address string) (bool, bool) {
@@ -241,13 +227,14 @@ func (s *multisigService) getAliasInfo(alias string) (*model.AliasInfo, error) {
 
 func (s *multisigService) getAddressFromSignature(signatureArgs string, signature string, isHex bool) (string, error) {
 	var signatureArgsBytes []byte
+	var err error
 	if isHex {
-		signatureArgsBytes, _ = formatting.Decode(formatting.Hex, signatureArgs)
+		signatureArgsBytes = common.Hex2Bytes(signatureArgs)
 	} else {
 		signatureArgsBytes = []byte(signatureArgs)
 	}
 	signatureArgsHash := hashing.ComputeHash256(signatureArgsBytes)
-	signatureBytes, _ := formatting.Decode(formatting.Hex, signature)
+	signatureBytes := common.Hex2Bytes(signature)
 
 	pub, err := s.secpFactory.RecoverHashPublicKey(signatureArgsHash, signatureBytes)
 	if err != nil {
@@ -263,28 +250,14 @@ func (s *multisigService) getAddressFromSignature(signatureArgs string, signatur
 	return "P-" + bech32Address, nil
 }
 
-func (s *multisigService) verifyTx(multisigTx *model.MultisigTx, txID string) (bool, error) {
-	txRes, err := s.nodeService.GetTx(txID)
-	if err != nil {
-		return false, err
-	}
-
-	txBytes, err := formatting.Decode(formatting.Hex, txRes.Result.Tx)
-	if err != nil {
-		return false, err
-	}
-
+func (s *multisigService) unmarshalTx(txHexString string) (txs.Tx, error) {
 	var tx txs.Tx
-	_, err = txs.Codec.Unmarshal(txBytes, &tx)
+	txBytes := common.Hex2Bytes(txHexString)
+
+	_, err := txs.Codec.Unmarshal(txBytes, &tx)
 	if err != nil {
-		return false, err
+		return tx, err
 	}
 
-	utxBytes := tx.Unsigned.Bytes()
-	utxString, err := formatting.Encode(formatting.Hex, utxBytes)
-	if err != nil {
-		return false, err
-	}
-
-	return utxString == multisigTx.UnsignedTx, nil
+	return tx, nil
 }
