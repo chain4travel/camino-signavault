@@ -35,7 +35,7 @@ func (m *MockMultisigTxDao) EXPECT() *MockMultisigTxDaoMockRecorder {
 }
 
 // AddSigner mocks base method.
-func (m *MockMultisigTxDao) AddSigner(arg0 int64, arg1, arg2 string) (bool, error) {
+func (m *MockMultisigTxDao) AddSigner(arg0, arg1, arg2 string) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddSigner", arg0, arg1, arg2)
 	ret0, _ := ret[0].(bool)
@@ -50,22 +50,22 @@ func (mr *MockMultisigTxDaoMockRecorder) AddSigner(arg0, arg1, arg2 interface{})
 }
 
 // CreateMultisigTx mocks base method.
-func (m *MockMultisigTxDao) CreateMultisigTx(arg0 string, arg1 int, arg2, arg3, arg4, arg5 string, arg6 []string) (int64, error) {
+func (m *MockMultisigTxDao) CreateMultisigTx(arg0, arg1 string, arg2 int, arg3, arg4, arg5, arg6 string, arg7 []string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateMultisigTx", arg0, arg1, arg2, arg3, arg4, arg5, arg6)
-	ret0, _ := ret[0].(int64)
+	ret := m.ctrl.Call(m, "CreateMultisigTx", arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateMultisigTx indicates an expected call of CreateMultisigTx.
-func (mr *MockMultisigTxDaoMockRecorder) CreateMultisigTx(arg0, arg1, arg2, arg3, arg4, arg5, arg6 interface{}) *gomock.Call {
+func (mr *MockMultisigTxDaoMockRecorder) CreateMultisigTx(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateMultisigTx", reflect.TypeOf((*MockMultisigTxDao)(nil).CreateMultisigTx), arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateMultisigTx", reflect.TypeOf((*MockMultisigTxDao)(nil).CreateMultisigTx), arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 }
 
 // GetMultisigTx mocks base method.
-func (m *MockMultisigTxDao) GetMultisigTx(arg0 int64, arg1, arg2 string) (*[]model.MultisigTx, error) {
+func (m *MockMultisigTxDao) GetMultisigTx(arg0, arg1, arg2 string) (*[]model.MultisigTx, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMultisigTx", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*[]model.MultisigTx)
@@ -80,7 +80,7 @@ func (mr *MockMultisigTxDaoMockRecorder) GetMultisigTx(arg0, arg1, arg2 interfac
 }
 
 // UpdateTransactionId mocks base method.
-func (m *MockMultisigTxDao) UpdateTransactionId(arg0 int64, arg1 string) (bool, error) {
+func (m *MockMultisigTxDao) UpdateTransactionId(arg0, arg1 string) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateTransactionId", arg0, arg1)
 	ret0, _ := ret[0].(bool)

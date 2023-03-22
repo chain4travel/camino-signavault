@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"strconv"
 
@@ -41,9 +42,9 @@ const (
 type MultisigService interface {
 	CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (*model.MultisigTx, error)
 	GetAllMultisigTxForAlias(alias string, timestamp string, signature string) (*[]model.MultisigTx, error)
-	GetMultisigTx(id int64) (*model.MultisigTx, error)
-	SignMultisigTx(id int64, signer *dto.SignTxArgs) (*model.MultisigTx, error)
-	CompleteMultisigTx(id int64, completeTx *dto.CompleteTxArgs) (bool, error)
+	GetMultisigTx(id string) (*model.MultisigTx, error)
+	SignMultisigTx(id string, signer *dto.SignTxArgs) (*model.MultisigTx, error)
+	CompleteMultisigTx(id string, completeTx *dto.CompleteTxArgs) (bool, error)
 }
 
 type multisigService struct {
@@ -89,8 +90,10 @@ func (s *multisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 	if !s.isCreatorOwner(owners, creator) {
 		return nil, errAddressNotOwner
 	}
+	// generate txId by hasing the unsignedTx
+	id := fmt.Sprintf("%x", hashing.ComputeHash256([]byte(unsignedTx)))
 
-	id, err := s.dao.CreateMultisigTx(alias, threshold, unsignedTx, creator, signature, outputOwners, owners)
+	_, err = s.dao.CreateMultisigTx(id, alias, threshold, unsignedTx, creator, signature, outputOwners, owners)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +107,7 @@ func (s *multisigService) GetAllMultisigTxForAlias(alias string, timestamp strin
 		return nil, errParsingSignature
 	}
 
-	tx, err := s.dao.GetMultisigTx(-1, alias, owner)
+	tx, err := s.dao.GetMultisigTx("", alias, owner)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +118,7 @@ func (s *multisigService) GetAllMultisigTxForAlias(alias string, timestamp strin
 	return tx, nil
 }
 
-func (s *multisigService) GetMultisigTx(id int64) (*model.MultisigTx, error) {
+func (s *multisigService) GetMultisigTx(id string) (*model.MultisigTx, error) {
 	tx, err := s.dao.GetMultisigTx(id, "", "")
 	if err != nil {
 		return nil, err
@@ -127,7 +130,7 @@ func (s *multisigService) GetMultisigTx(id int64) (*model.MultisigTx, error) {
 	return &(*tx)[0], nil
 }
 
-func (s *multisigService) SignMultisigTx(id int64, signer *dto.SignTxArgs) (*model.MultisigTx, error) {
+func (s *multisigService) SignMultisigTx(id string, signer *dto.SignTxArgs) (*model.MultisigTx, error) {
 	multisigTx, err := s.GetMultisigTx(id)
 	if err != nil {
 		return nil, err
@@ -158,7 +161,7 @@ func (s *multisigService) SignMultisigTx(id int64, signer *dto.SignTxArgs) (*mod
 	return s.GetMultisigTx(id)
 }
 
-func (s *multisigService) CompleteMultisigTx(id int64, completeTx *dto.CompleteTxArgs) (bool, error) {
+func (s *multisigService) CompleteMultisigTx(id string, completeTx *dto.CompleteTxArgs) (bool, error) {
 	multisigTx, err := s.GetMultisigTx(id)
 	if err != nil {
 		return false, err
@@ -172,7 +175,7 @@ func (s *multisigService) CompleteMultisigTx(id int64, completeTx *dto.CompleteT
 		return false, errEmptyTimestamp
 	}
 
-	signatureArgs := strconv.FormatInt(id, 10) + completeTx.Timestamp + completeTx.TransactionId
+	signatureArgs := id + completeTx.Timestamp + completeTx.TransactionId
 	signerAddr, err := s.getAddressFromSignature(signatureArgs, completeTx.Signature, false)
 	if err != nil {
 		return false, errParsingSignature
