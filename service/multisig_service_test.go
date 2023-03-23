@@ -96,6 +96,8 @@ func TestCreateMultisigTx(t *testing.T) {
 	// id string, alias string, threshold int, unsignedTx string, creator string, signature string, outputOwners string, owners []string
 	mockDao.EXPECT().CreateMultisigTx(mockTx.Id, mockTx.Alias, thresholdInt, mockTx.UnsignedTx, mockTx.Owners[0].Address, mockTx.Owners[0].Signature, mockTx.OutputOwners, mockAliasInfo.Result.Addresses).Return(mockTx.Id, nil)
 	mockDao.EXPECT().GetMultisigTx(mockTx.Id, "", "").Return(&[]model.MultisigTx{mockTx}, nil).AnyTimes()
+	mockDao.EXPECT().PendingAliasExists("P-kopernikus1fq0jc8svlyazhygkj0s36qnl6s0km0h3uuc99e").Return(true, nil)
+	mockDao.EXPECT().PendingAliasExists(gomock.Any()).Return(false, nil).AnyTimes()
 	mockNodeService.EXPECT().GetMultisigAlias(alias).Return(mockAliasInfo, nil)
 	mockNodeService.EXPECT().GetMultisigAlias(gomock.Any()).Return(nil, errAliasInfoNotFound)
 
@@ -130,6 +132,18 @@ func TestCreateMultisigTx(t *testing.T) {
 				},
 			},
 			err: errAliasInfoNotFound,
+		},
+		{
+			name: "Duplicate alias",
+			args: args{
+				multisigTx: &dto.MultisigTxArgs{
+					Alias:        "P-kopernikus1fq0jc8svlyazhygkj0s36qnl6s0km0h3uuc99e",
+					UnsignedTx:   mockTx.UnsignedTx,
+					Signature:    mockTx.Owners[0].Signature,
+					OutputOwners: mockTx.OutputOwners,
+				},
+			},
+			err: errPendingTx,
 		},
 	}
 	for _, tt := range tests {
