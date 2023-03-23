@@ -28,6 +28,8 @@ var (
 	errAddressNotOwner  = errors.New("address is not an owner for this alias")
 	errOwnerHasSigned   = errors.New("owner has already signed this alias")
 	errThresholdParsing = errors.New("threshold is not a number")
+	errParsingUtx       = errors.New("error parsing unsigned tx")
+	errParsingTx        = errors.New("error parsing signed tx")
 	errPendingTx        = errors.New("there is already a pending tx for this alias")
 )
 
@@ -95,8 +97,18 @@ func (s *multisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 	if !s.isCreatorOwner(owners, creator) {
 		return nil, errAddressNotOwner
 	}
+
+	utx, err := s.unmarshalUnsignedTx(unsignedTx)
+	if err != nil {
+		return nil, errParsingUtx
+	}
+	utxBytes, err := txs.Codec.Marshal(txs.Version, utx)
+	if err != nil {
+		return nil, errParsingUtx
+	}
+
 	// generate txId by hasing the unsignedTx
-	id := fmt.Sprintf("%x", hashing.ComputeHash256([]byte(unsignedTx)))
+	id := fmt.Sprintf("%x", hashing.ComputeHash256(utxBytes))
 
 	_, err = s.dao.CreateMultisigTx(id, alias, threshold, unsignedTx, creator, signature, outputOwners, owners)
 	if err != nil {
@@ -172,7 +184,8 @@ func (s *multisigService) IssueMultisigTx(sendTxArgs *dto.IssueTxArgs) (ids.ID, 
 		return ids.Empty, err
 	}
 
-	utxHash := hashing.ComputeHash256(tx.Unsigned.Bytes())
+	utxBytes, err := txs.Codec.Marshal(txs.Version, tx.Unsigned)
+	utxHash := hashing.ComputeHash256(utxBytes)
 	utxHashStr := fmt.Sprintf("%x", utxHash)
 
 	storedTx, err := s.GetMultisigTx(utxHashStr)
@@ -180,7 +193,7 @@ func (s *multisigService) IssueMultisigTx(sendTxArgs *dto.IssueTxArgs) (ids.ID, 
 		return ids.Empty, err
 	}
 
-	signerAddr, err := s.getAddressFromSignature(storedTx.UnsignedTx, sendTxArgs.Signature, true)
+	signerAddr, err := s.getAddressFromSignature(sendTxArgs.SignedTx, sendTxArgs.Signature, true)
 	if err != nil {
 		return ids.Empty, errParsingSignature
 	}
@@ -190,7 +203,12 @@ func (s *multisigService) IssueMultisigTx(sendTxArgs *dto.IssueTxArgs) (ids.ID, 
 		return ids.Empty, errAddressNotOwner
 	}
 
-	txID, err := s.nodeService.IssueTx(tx.Bytes())
+	signedBytes, err := txs.Codec.Marshal(txs.Version, tx)
+	if err != nil {
+		return ids.Empty, errParsingTx
+	}
+
+	txID, err := s.nodeService.IssueTx(signedBytes)
 	_, err = s.dao.UpdateTransactionId(utxHashStr, txID.String())
 	if err != nil {
 		return ids.Empty, err
@@ -229,12 +247,13 @@ func (s *multisigService) getAddressFromSignature(signatureArgs string, signatur
 	var signatureArgsBytes []byte
 	var err error
 	if isHex {
-		signatureArgsBytes = common.Hex2Bytes(signatureArgs)
+		signatureArgsBytes = common.FromHex(signatureArgs)
 	} else {
 		signatureArgsBytes = []byte(signatureArgs)
 	}
+
 	signatureArgsHash := hashing.ComputeHash256(signatureArgsBytes)
-	signatureBytes := common.Hex2Bytes(signature)
+	signatureBytes := common.FromHex(signature)
 
 	pub, err := s.secpFactory.RecoverHashPublicKey(signatureArgsHash, signatureBytes)
 	if err != nil {
@@ -252,7 +271,7 @@ func (s *multisigService) getAddressFromSignature(signatureArgs string, signatur
 
 func (s *multisigService) unmarshalTx(txHexString string) (txs.Tx, error) {
 	var tx txs.Tx
-	txBytes := common.Hex2Bytes(txHexString)
+	txBytes := common.FromHex(txHexString)
 
 	_, err := txs.Codec.Unmarshal(txBytes, &tx)
 	if err != nil {
@@ -260,4 +279,17 @@ func (s *multisigService) unmarshalTx(txHexString string) (txs.Tx, error) {
 	}
 
 	return tx, nil
+}
+
+// unmarshal unsigned tx
+func (s *multisigService) unmarshalUnsignedTx(txHexString string) (txs.UnsignedTx, error) {
+	var utx txs.UnsignedTx
+	txBytes := common.FromHex(txHexString)
+
+	_, err := txs.Codec.Unmarshal(txBytes, &utx)
+	if err != nil {
+		return utx, err
+	}
+
+	return utx, nil
 }
