@@ -2,7 +2,6 @@ package handler
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/chain4travel/camino-signavault/dao"
 	"github.com/chain4travel/camino-signavault/db"
@@ -10,7 +9,6 @@ import (
 	"github.com/chain4travel/camino-signavault/service"
 	"github.com/chain4travel/camino-signavault/util"
 	"github.com/gin-gonic/gin"
-	"net/http"
 )
 
 type MultisigHandler struct {
