@@ -33,6 +33,7 @@ var (
 	errAddressNotOwner  = errors.New("address is not an owner for this alias")
 	errOwnerHasSigned   = errors.New("owner has already signed this alias")
 	errThresholdParsing = errors.New("threshold is not a number")
+	errPendingTx        = errors.New("there is already a pending tx for this alias")
 )
 
 const (
@@ -69,6 +70,15 @@ func (s *multisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 	var err error
 
 	alias := multisigTxArgs.Alias
+
+	exists, err := s.dao.PendingAliasExists(alias)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, errPendingTx
+	}
+
 	aliasInfo, err := s.getAliasInfo(alias)
 	if err != nil {
 		return nil, err

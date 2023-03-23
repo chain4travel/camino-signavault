@@ -9,7 +9,6 @@ import (
 	"github.com/chain4travel/camino-signavault/util"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"strconv"
 )
 
 type MultisigHandler struct {
@@ -123,18 +122,6 @@ func (h *MultisigHandler) CompleteMultisigTx(ctx *gin.Context) {
 		return
 	}
 	ctx.Status(http.StatusNoContent)
-}
-
-func (h *MultisigHandler) parseIdParam(idParam string, ctx *gin.Context) int64 {
-	id, err := strconv.Atoi(idParam)
-	if err != nil {
-		ctx.JSON(400, gin.H{
-			"message": "Error parsing id " + ctx.Param("id") + " to integer",
-			"error":   err.Error(),
-		})
-		return 0
-	}
-	return int64(id)
 }
 
 func (h *MultisigHandler) throwMissingQueryParamError(ctx *gin.Context, param string) {

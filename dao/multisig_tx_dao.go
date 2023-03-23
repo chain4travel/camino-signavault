@@ -12,6 +12,7 @@ type MultisigTxDao interface {
 	GetMultisigTx(id string, alias string, owner string) (*[]model.MultisigTx, error)
 	UpdateTransactionId(id string, transactionId string) (bool, error)
 	AddSigner(id string, signature string, signerAddress string) (bool, error)
+	PendingAliasExists(alias string) (bool, error)
 }
 type multisigTxDao struct {
 	db *db.Db
@@ -21,6 +22,30 @@ func NewMultisigTxDao(db *db.Db) MultisigTxDao {
 	return &multisigTxDao{
 		db: db,
 	}
+}
+
+func (d *multisigTxDao) PendingAliasExists(alias string) (bool, error) {
+	query := "SELECT count(id) " +
+		"FROM multisig_tx " +
+		"WHERE alias = ? AND transaction_id IS NULL"
+	rows, err := d.db.Query(query, alias)
+	if err != nil {
+		return false, err
+	}
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			log.Print(err)
+		}
+	}(rows)
+
+	rows.Next()
+	var count int
+	err = rows.Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }
 
 func (d *multisigTxDao) CreateMultisigTx(id string, alias string, threshold int, unsignedTx string, creator string, signature string, outputOwners string, owners []string) (string, error) {
