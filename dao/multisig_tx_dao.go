@@ -225,6 +225,9 @@ func (d *multisigTxDao) GetMultisigTx(id string, alias string, owner string) (*[
 	for _, tx := range multiSigTx {
 		result = append(result, tx)
 	}
+	if result == nil {
+		return nil, nil
+	}
 	return &result, nil
 }
 

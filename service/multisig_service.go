@@ -211,7 +211,7 @@ func (s *multisigService) IssueMultisigTx(sendTxArgs *dto.IssueTxArgs) (ids.ID, 
 	if err != nil {
 		return ids.Empty, err
 	}
-	_, err = s.dao.UpdateTransactionId(utxHashStr, txID.String())
+	_, _ = s.dao.UpdateTransactionId(utxHashStr, txID.String())
 	return txID, nil
 }
 
