@@ -1,8 +1,6 @@
 package service
 
 import (
-	"fmt"
-	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/chain4travel/camino-signavault/dao"
 	"github.com/chain4travel/camino-signavault/dto"
 	"github.com/chain4travel/camino-signavault/model"
@@ -27,8 +25,8 @@ func TestCreateMultisigTx(t *testing.T) {
 		NetworkId: networkId,
 	}
 
-	unsignedTx := "0x00000000200400003039010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000e4a36162"
-	id := fmt.Sprintf("%x", hashing.ComputeHash256([]byte(unsignedTx)))
+	unsignedTx := "000000002004000003ea010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+	id := "bc6246f58b5aba675f4071bd1a13d7a774384e42f301208d1c2b0f22ee602e69"
 
 	alias := "P-kopernikus1k4przmfu79ypp4u7y98glmdpzwk0u3sc7saazy"
 	mockAliasInfo := &model.AliasInfo{
@@ -52,7 +50,7 @@ func TestCreateMultisigTx(t *testing.T) {
 			{
 				MultisigTxId: id,
 				Address:      mockAliasInfo.Result.Addresses[0],
-				Signature:    "0x83a657db18ff50438d418db9bde239a47bca2d910114aa0cc68ac736053c96c46b300f2c28d0ff6c8587ae916b66b5d575a731d8ecc37abee3c96bdc23dcd88b007c40d266",
+				Signature:    "4d974561be4675853e0bc6062eac412228e94b16c6ba86dcfedccc1ef2b2a5156ab5aaddbd11f9d88786563fe9f3c17ca5e44a9936621b027b3179284dd86dc000",
 			},
 			{
 				MultisigTxId: id,
@@ -63,7 +61,6 @@ func TestCreateMultisigTx(t *testing.T) {
 	}
 
 	thresholdInt, _ := strconv.Atoi(mockAliasInfo.Result.Threshold)
-	// id string, alias string, threshold int, unsignedTx string, creator string, signature string, outputOwners string, owners []string
 	mockDao.EXPECT().CreateMultisigTx(mockTx.Id, mockTx.Alias, thresholdInt, mockTx.UnsignedTx, mockTx.Owners[0].Address, mockTx.Owners[0].Signature, mockTx.OutputOwners, mockAliasInfo.Result.Addresses).Return(mockTx.Id, nil)
 	mockDao.EXPECT().GetMultisigTx(mockTx.Id, "", "").Return(&[]model.MultisigTx{mockTx}, nil).AnyTimes()
 	mockDao.EXPECT().PendingAliasExists("P-kopernikus1fq0jc8svlyazhygkj0s36qnl6s0km0h3uuc99e").Return(true, nil)

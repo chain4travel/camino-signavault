@@ -97,18 +97,11 @@ func (s *multisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 	if !s.isCreatorOwner(owners, creator) {
 		return nil, errAddressNotOwner
 	}
-
-	utx, err := s.unmarshalUnsignedTx(unsignedTx)
-	if err != nil {
-		return nil, errParsingUtx
-	}
-	utxBytes, err := txs.Codec.Marshal(txs.Version, utx)
-	if err != nil {
-		return nil, errParsingUtx
-	}
-
 	// generate txId by hasing the unsignedTx
-	id := fmt.Sprintf("%x", hashing.ComputeHash256(utxBytes))
+	id, err := s.generatedId(unsignedTx)
+	if err != nil {
+		return nil, err
+	}
 
 	_, err = s.dao.CreateMultisigTx(id, alias, threshold, unsignedTx, creator, signature, outputOwners, owners)
 	if err != nil {
@@ -292,4 +285,16 @@ func (s *multisigService) unmarshalUnsignedTx(txHexString string) (txs.UnsignedT
 	}
 
 	return utx, nil
+}
+
+func (s *multisigService) generatedId(unsignedTx string) (string, error) {
+	utx, err := s.unmarshalUnsignedTx(unsignedTx)
+	if err != nil {
+		return "", errParsingUtx
+	}
+	utxBytes, err := txs.Codec.Marshal(txs.Version, utx)
+	if err != nil {
+		return "", errParsingUtx
+	}
+	return fmt.Sprintf("%x", hashing.ComputeHash256(utxBytes)), nil
 }
