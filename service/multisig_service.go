@@ -201,11 +201,11 @@ func (s *multisigService) IssueMultisigTx(sendTxArgs *dto.IssueTxArgs) (ids.ID, 
 		return ids.Empty, errParsingTx
 	}
 
-	txID, _ := s.nodeService.IssueTx(signedBytes)
-	_, err = s.dao.UpdateTransactionId(utxHashStr, txID.String())
+	txID, err := s.nodeService.IssueTx(signedBytes)
 	if err != nil {
 		return ids.Empty, err
 	}
+	_, err = s.dao.UpdateTransactionId(utxHashStr, txID.String())
 	return txID, nil
 }
 
