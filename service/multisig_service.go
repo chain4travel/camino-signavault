@@ -184,7 +184,7 @@ func (s *multisigService) IssueMultisigTx(sendTxArgs *dto.IssueTxArgs) (ids.ID, 
 		return ids.Empty, err
 	}
 
-	utxBytes, err := txs.Codec.Marshal(txs.Version, tx.Unsigned)
+	utxBytes, _ := txs.Codec.Marshal(txs.Version, tx.Unsigned)
 	utxHash := hashing.ComputeHash256(utxBytes)
 	utxHashStr := fmt.Sprintf("%x", utxHash)
 
@@ -208,7 +208,7 @@ func (s *multisigService) IssueMultisigTx(sendTxArgs *dto.IssueTxArgs) (ids.ID, 
 		return ids.Empty, errParsingTx
 	}
 
-	txID, err := s.nodeService.IssueTx(signedBytes)
+	txID, _ := s.nodeService.IssueTx(signedBytes)
 	_, err = s.dao.UpdateTransactionId(utxHashStr, txID.String())
 	if err != nil {
 		return ids.Empty, err
