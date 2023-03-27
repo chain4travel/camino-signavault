@@ -1,2 +1,2 @@
 # camino-signavault
-Singature Vault to collect signatures for multisig alias transactions
+SignaVault is a standalone service to collect signatures for multisig alias transactions.
