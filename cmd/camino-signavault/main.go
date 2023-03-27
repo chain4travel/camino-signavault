@@ -13,6 +13,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Command to generate swagger docs (root dir)
+// swag init -g ./cmd/camino-signavault/main.go --exclude ./dependencies/caminogo
+// Command to generate the typescript client
+// openapi-generator-cli generate -i docs/swagger.json -g typescript-axios -o signavaultjs
+
+// @title Signavault API
+// @version 1.0
+// @description This is the signavault API.
+// @host localhost:8080
+// @BasePath /v1
+// @schemes http
 func main() {
 	config := util.GetInstance()
 	startRouter(config)
