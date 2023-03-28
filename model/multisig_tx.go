@@ -12,6 +12,7 @@ type MultisigTx struct {
 	Threshold     int8              `json:"threshold"`
 	TransactionId string            `json:"transactionId"`
 	OutputOwners  string            `json:"outputOwners"`
+	Metadata      string            `json:"metadata"`
 	Owners        []MultisigTxOwner `json:"owners"`
 }
 

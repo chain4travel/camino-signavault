@@ -10,6 +10,7 @@ type MultisigTxArgs struct {
 	UnsignedTx   string `json:"unsignedTx" binding:"required"`
 	Signature    string `json:"signature" binding:"required"`
 	OutputOwners string `json:"outputOwners" binding:"required"`
+	Metadata     string `json:"metadata"`
 }
 
 type SignTxArgs struct {
