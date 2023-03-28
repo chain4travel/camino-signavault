@@ -50,18 +50,18 @@ func (mr *MockMultisigTxDaoMockRecorder) AddSigner(arg0, arg1, arg2 interface{})
 }
 
 // CreateMultisigTx mocks base method.
-func (m *MockMultisigTxDao) CreateMultisigTx(arg0, arg1 string, arg2 int, arg3, arg4, arg5, arg6 string, arg7 []string) (string, error) {
+func (m *MockMultisigTxDao) CreateMultisigTx(arg0, arg1 string, arg2 int, arg3, arg4, arg5, arg6, arg7 string, arg8 []string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateMultisigTx", arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+	ret := m.ctrl.Call(m, "CreateMultisigTx", arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateMultisigTx indicates an expected call of CreateMultisigTx.
-func (mr *MockMultisigTxDaoMockRecorder) CreateMultisigTx(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7 interface{}) *gomock.Call {
+func (mr *MockMultisigTxDaoMockRecorder) CreateMultisigTx(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateMultisigTx", reflect.TypeOf((*MockMultisigTxDao)(nil).CreateMultisigTx), arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateMultisigTx", reflect.TypeOf((*MockMultisigTxDao)(nil).CreateMultisigTx), arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
 }
 
 // GetMultisigTx mocks base method.
