@@ -1,0 +1,9 @@
+{
+  "host": "localhost",
+  "port": 9650,
+  "protocol": "http",
+  "networkID": 1002,
+  "signavaultHost": "localhost",
+  "signavaultPort": 8080,
+  "signavaultProtocol": "http"
+}
