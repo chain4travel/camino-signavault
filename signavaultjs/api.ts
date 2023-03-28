@@ -72,6 +72,12 @@ export interface DtoMultisigTxArgs {
      * @type {string}
      * @memberof DtoMultisigTxArgs
      */
+    'metadata'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof DtoMultisigTxArgs
+     */
     'outputOwners': string;
     /**
      * 
@@ -136,6 +142,12 @@ export interface ModelMultisigTx {
      * @memberof ModelMultisigTx
      */
     'id'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ModelMultisigTx
+     */
+    'metadata'?: string;
     /**
      * 
      * @type {string}
