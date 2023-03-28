@@ -6,6 +6,7 @@ CREATE TABLE multisig_tx
     threshold       INT             NOT NULL,
     transaction_id  VARCHAR(56)     NULL,
     output_owners   VARCHAR(255)    NOT NULL,
+    metadata        VARCHAR(255)    NOT NULL,
     created_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id)
 );

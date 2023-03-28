@@ -7,13 +7,14 @@ package dao
 
 import (
 	"database/sql"
+	"log"
+
 	"github.com/chain4travel/camino-signavault/db"
 	"github.com/chain4travel/camino-signavault/model"
-	"log"
 )
 
 type MultisigTxDao interface {
-	CreateMultisigTx(id string, alias string, threshold int, unsignedTx string, creator string, signature string, outputOwners string, owners []string) (string, error)
+	CreateMultisigTx(id string, alias string, threshold int, unsignedTx string, creator string, signature string, outputOwners string, metadata string, owners []string) (string, error)
 	GetMultisigTx(id string, alias string, owner string) (*[]model.MultisigTx, error)
 	UpdateTransactionId(id string, transactionId string) (bool, error)
 	AddSigner(id string, signature string, signerAddress string) (bool, error)
@@ -53,17 +54,17 @@ func (d *multisigTxDao) PendingAliasExists(alias string) (bool, error) {
 	return count > 0, nil
 }
 
-func (d *multisigTxDao) CreateMultisigTx(id string, alias string, threshold int, unsignedTx string, creator string, signature string, outputOwners string, owners []string) (string, error) {
+func (d *multisigTxDao) CreateMultisigTx(id string, alias string, threshold int, unsignedTx string, creator string, signature string, outputOwners string, metadata string, owners []string) (string, error) {
 	tx, err := d.db.Begin()
 	if err != nil {
 		return "", err
 	}
 
-	stmt, err := tx.Prepare("INSERT INTO multisig_tx (id, alias, threshold, unsigned_tx, output_owners) VALUES (?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("INSERT INTO multisig_tx (id, alias, threshold, unsigned_tx, output_owners, metadata) VALUES (?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		return "", err
 	}
-	_, err = stmt.Exec(id, alias, threshold, unsignedTx, outputOwners)
+	_, err = stmt.Exec(id, alias, threshold, unsignedTx, outputOwners, metadata)
 	if err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			log.Printf("Execute statement failed: %v, unable to rollback: %v", err, rollbackErr)
@@ -115,6 +116,7 @@ func (d *multisigTxDao) GetMultisigTx(id string, alias string, owner string) (*[
 			"tx.transaction_id, " +
 			"tx.unsigned_tx, " +
 			"tx.output_owners," +
+			"tx.metadata," +
 			"owners.multisig_tx_id, " +
 			"owners.address, " +
 			"owners.signature, " +
@@ -131,6 +133,7 @@ func (d *multisigTxDao) GetMultisigTx(id string, alias string, owner string) (*[
 			"tx.transaction_id, " +
 			"tx.unsigned_tx, " +
 			"tx.output_owners," +
+			"tx.metadata," +
 			"owners.multisig_tx_id, " +
 			"owners.address, " +
 			"owners.signature, " +
@@ -165,6 +168,7 @@ func (d *multisigTxDao) GetMultisigTx(id string, alias string, owner string) (*[
 			txTransactionId   sql.NullString
 			txUnsignedTx      string
 			txOutputOwners    string
+			txMetadata        string
 			ownerMultisigTxId string
 			ownerAddress      sql.NullString
 			ownerSignature    sql.NullString
@@ -174,9 +178,9 @@ func (d *multisigTxDao) GetMultisigTx(id string, alias string, owner string) (*[
 
 		var err error
 		if owner == "" {
-			err = rows.Scan(&txId, &txAlias, &txThreshold, &txTransactionId, &txUnsignedTx, &txOutputOwners, &ownerMultisigTxId, &ownerAddress, &ownerSignature, &ownerIsSigner)
+			err = rows.Scan(&txId, &txAlias, &txThreshold, &txTransactionId, &txUnsignedTx, &txOutputOwners, &txMetadata, &ownerMultisigTxId, &ownerAddress, &ownerSignature, &ownerIsSigner)
 		} else {
-			err = rows.Scan(&txId, &txAlias, &txThreshold, &txTransactionId, &txUnsignedTx, &txOutputOwners, &ownerMultisigTxId, &ownerAddress, &ownerSignature, &ownerIsSigner, &ownerAddress2)
+			err = rows.Scan(&txId, &txAlias, &txThreshold, &txTransactionId, &txUnsignedTx, &txOutputOwners, &txMetadata, &ownerMultisigTxId, &ownerAddress, &ownerSignature, &ownerIsSigner, &ownerAddress2)
 		}
 		if err != nil {
 			log.Fatal(err)
@@ -191,6 +195,7 @@ func (d *multisigTxDao) GetMultisigTx(id string, alias string, owner string) (*[
 				Alias:         txAlias,
 				Threshold:     txThreshold,
 				OutputOwners:  txOutputOwners,
+				Metadata:      txMetadata,
 				TransactionId: txTransactionId.String,
 				UnsignedTx:    txUnsignedTx,
 			}
