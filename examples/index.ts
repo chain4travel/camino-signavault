@@ -1,1 +1,1 @@
-export * from "./registerNodeTx";
+export * from "./addValidatorTx";
