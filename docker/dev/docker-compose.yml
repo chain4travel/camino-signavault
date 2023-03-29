@@ -49,7 +49,7 @@ services:
   signavault: 
     build:
       context: ../..
-    image: "signavault_deployed"
+    image: "c4tplatform/signavault"
     ports:
       - "8080:8080"
     external_links:
