@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.ts",
   "scripts": {
-    "registerNodeTx": "npx ts-node -r tsconfig-paths/register registerNodeTx.ts"
+    "registerNodeTx": "npx ts-node -r tsconfig-paths/register addValidatorTx.ts"
   },
   "repository": {
     "type": "git",
