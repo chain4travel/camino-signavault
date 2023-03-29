@@ -6,6 +6,9 @@
 package main
 
 import (
+	"github.com/chain4travel/camino-signavault/dao"
+	"github.com/chain4travel/camino-signavault/db"
+	"github.com/chain4travel/camino-signavault/service"
 	"log"
 
 	"github.com/gin-contrib/cors"
@@ -41,7 +44,8 @@ func startRouter(cfg *util.Config) {
 	}
 	api := router.Group("/v1")
 
-	h := handler.NewMultisigHandler()
+	multisigService := service.NewMultisigService(cfg, dao.NewMultisigTxDao(db.GetInstance()), service.NewNodeService(cfg))
+	h := handler.NewMultisigHandler(multisigService)
 
 	api.POST("/multisig", h.CreateMultisigTx)
 	api.POST("/multisig/issue", h.IssueMultisigTx)
