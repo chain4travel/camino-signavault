@@ -45,3 +45,19 @@ services:
     restart: on-failure
     networks:
       - signavault_services
+
+  signavault: 
+    build:
+      context: ../..
+    image: "signavault_deployed"
+    ports:
+      - "8080:8080"
+    external_links:
+      - mysql
+    depends_on:
+      - mysql
+      - migrate
+    restart: on-failure
+    networks:
+      - signavault_services
+
