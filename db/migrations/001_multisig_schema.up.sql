@@ -1,7 +1,7 @@
 CREATE TABLE multisig_tx
 (
     id              CHAR(64)        NOT NULL,
-    unsigned_tx     VARCHAR(1024)   NOT NULL,
+    unsigned_tx     VARCHAR(2048)   NOT NULL,
     alias           VARCHAR(255)    NOT NULL,
     threshold       INT             NOT NULL,
     transaction_id  VARCHAR(56)     NULL,
