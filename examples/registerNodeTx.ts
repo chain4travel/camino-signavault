@@ -25,7 +25,7 @@ import {
     DtoIssueTxResponse,
     ModelMultisigTx,
     MultisigApi
-} from "signavault"
+} from "@c4tplatform/signavaultjs"
 import { AxiosResponse } from "axios"
 import createHash from "create-hash";
 

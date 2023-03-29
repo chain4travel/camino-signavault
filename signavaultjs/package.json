@@ -1,10 +1,11 @@
 {
-  "name": "signavault",
-  "version": "1.0.0",
+  "name": "@c4tplatform/signavaultjs",
+  "version": "1.0.3",
   "description": "",
-  "main": "index.ts",
+  "types": "dist/index.d.ts",
+  "main": "dist/index.js",
   "scripts": {
-    "build": "rm -rf dist && npx tsc -b"
+    "build": "rm -rf dist && npx tsc -b && mkdir dist && cp -r typings/* dist"
   },
   "repository": {
     "type": "git",
@@ -16,7 +17,6 @@
   "devDependencies": {
     "@types/create-hash": "^1.2.2",
     "@types/node": "^18.15.10",
-    "deepmerge": "^4.3.1",
     "ts-node": "^10.9.1",
     "tsconfig-paths": "^4.1.2",
     "typescript": "^5.0.2"

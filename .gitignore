@@ -11,3 +11,11 @@
 
 # Test binary, built with `go test -c`
 *.test
+
+./signavaultjs/node_modules/
+./signavaultjs/dist/
+./signavaultjs/typings/
+./signavaultjs/package-lock.json
+
+./examples/node_modules/
+./examples/package-lock.json
