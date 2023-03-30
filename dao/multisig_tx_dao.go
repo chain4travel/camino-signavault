@@ -7,10 +7,10 @@ package dao
 
 import (
 	"database/sql"
-	"log"
-
 	"github.com/chain4travel/camino-signavault/db"
 	"github.com/chain4travel/camino-signavault/model"
+	"log"
+	"time"
 )
 
 type MultisigTxDao interface {
@@ -117,6 +117,7 @@ func (d *multisigTxDao) GetMultisigTx(id string, alias string, owner string) (*[
 			"tx.unsigned_tx, " +
 			"tx.output_owners," +
 			"tx.metadata," +
+			"tx.created_at," +
 			"owners.multisig_tx_id, " +
 			"owners.address, " +
 			"owners.signature, " +
@@ -134,6 +135,7 @@ func (d *multisigTxDao) GetMultisigTx(id string, alias string, owner string) (*[
 			"tx.unsigned_tx, " +
 			"tx.output_owners," +
 			"tx.metadata," +
+			"tx.created_at," +
 			"owners.multisig_tx_id, " +
 			"owners.address, " +
 			"owners.signature, " +
@@ -169,6 +171,7 @@ func (d *multisigTxDao) GetMultisigTx(id string, alias string, owner string) (*[
 			txUnsignedTx      string
 			txOutputOwners    string
 			txMetadata        string
+			txCreatedAt       time.Time
 			ownerMultisigTxId string
 			ownerAddress      sql.NullString
 			ownerSignature    sql.NullString
@@ -178,9 +181,9 @@ func (d *multisigTxDao) GetMultisigTx(id string, alias string, owner string) (*[
 
 		var err error
 		if owner == "" {
-			err = rows.Scan(&txId, &txAlias, &txThreshold, &txTransactionId, &txUnsignedTx, &txOutputOwners, &txMetadata, &ownerMultisigTxId, &ownerAddress, &ownerSignature, &ownerIsSigner)
+			err = rows.Scan(&txId, &txAlias, &txThreshold, &txTransactionId, &txUnsignedTx, &txOutputOwners, &txMetadata, &txCreatedAt, &ownerMultisigTxId, &ownerAddress, &ownerSignature, &ownerIsSigner)
 		} else {
-			err = rows.Scan(&txId, &txAlias, &txThreshold, &txTransactionId, &txUnsignedTx, &txOutputOwners, &txMetadata, &ownerMultisigTxId, &ownerAddress, &ownerSignature, &ownerIsSigner, &ownerAddress2)
+			err = rows.Scan(&txId, &txAlias, &txThreshold, &txTransactionId, &txUnsignedTx, &txOutputOwners, &txMetadata, &txCreatedAt, &ownerMultisigTxId, &ownerAddress, &ownerSignature, &ownerIsSigner, &ownerAddress2)
 		}
 		if err != nil {
 			log.Fatal(err)
@@ -192,12 +195,13 @@ func (d *multisigTxDao) GetMultisigTx(id string, alias string, owner string) (*[
 		} else {
 			tx = model.MultisigTx{
 				Id:            txId,
+				UnsignedTx:    txUnsignedTx,
 				Alias:         txAlias,
 				Threshold:     txThreshold,
+				TransactionId: txTransactionId.String,
 				OutputOwners:  txOutputOwners,
 				Metadata:      txMetadata,
-				TransactionId: txTransactionId.String,
-				UnsignedTx:    txUnsignedTx,
+				Timestamp:     txCreatedAt,
 			}
 		}
 

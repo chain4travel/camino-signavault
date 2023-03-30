@@ -5,19 +5,22 @@
 
 package model
 
+import "time"
+
 type MultisigTx struct {
-	Id            string            `json:"id"`
-	UnsignedTx    string            `json:"unsignedTx"`
-	Alias         string            `json:"alias"`
-	Threshold     int8              `json:"threshold"`
+	Id            string            `json:"id" binding:"required"`
+	UnsignedTx    string            `json:"unsignedTx" binding:"required"`
+	Alias         string            `json:"alias" binding:"required"`
+	Threshold     int8              `json:"threshold" binding:"required"`
 	TransactionId string            `json:"transactionId"`
-	OutputOwners  string            `json:"outputOwners"`
+	OutputOwners  string            `json:"outputOwners" binding:"required"`
 	Metadata      string            `json:"metadata"`
-	Owners        []MultisigTxOwner `json:"owners"`
+	Owners        []MultisigTxOwner `json:"owners" binding:"required"`
+	Timestamp     time.Time         `json:"timestamp"`
 }
 
 type MultisigTxOwner struct {
-	MultisigTxId string `json:"-"`
-	Address      string `json:"address"`
+	MultisigTxId string `json:"-" binding:"required"`
+	Address      string `json:"address" binding:"required"`
 	Signature    string `json:"signature"`
 }
