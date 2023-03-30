@@ -135,13 +135,13 @@ export interface ModelMultisigTx {
      * @type {string}
      * @memberof ModelMultisigTx
      */
-    'alias'?: string;
+    'alias': string;
     /**
      * 
      * @type {string}
      * @memberof ModelMultisigTx
      */
-    'id'?: string;
+    'id': string;
     /**
      * 
      * @type {string}
@@ -153,19 +153,25 @@ export interface ModelMultisigTx {
      * @type {string}
      * @memberof ModelMultisigTx
      */
-    'outputOwners'?: string;
+    'outputOwners': string;
     /**
      * 
      * @type {Array<ModelMultisigTxOwner>}
      * @memberof ModelMultisigTx
      */
-    'owners'?: Array<ModelMultisigTxOwner>;
+    'owners': Array<ModelMultisigTxOwner>;
     /**
      * 
      * @type {number}
      * @memberof ModelMultisigTx
      */
-    'threshold'?: number;
+    'threshold': number;
+    /**
+     * 
+     * @type {string}
+     * @memberof ModelMultisigTx
+     */
+    'timestamp': string;
     /**
      * 
      * @type {string}
@@ -177,7 +183,7 @@ export interface ModelMultisigTx {
      * @type {string}
      * @memberof ModelMultisigTx
      */
-    'unsignedTx'?: string;
+    'unsignedTx': string;
 }
 /**
  * 
@@ -190,7 +196,7 @@ export interface ModelMultisigTxOwner {
      * @type {string}
      * @memberof ModelMultisigTxOwner
      */
-    'address'?: string;
+    'address': string;
     /**
      * 
      * @type {string}
