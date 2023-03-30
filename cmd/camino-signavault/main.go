@@ -6,6 +6,7 @@
 package main
 
 import (
+	"github.com/gin-contrib/cors"
 	"log"
 
 	"github.com/chain4travel/camino-signavault/handler"
@@ -32,6 +33,7 @@ func main() {
 func startRouter(cfg *util.Config) {
 	// gin.SetMode(gin.DebugMode)
 	router := gin.Default()
+	router.Use(cors.Default())
 	err := router.SetTrustedProxies(nil)
 	if err != nil {
 		return
