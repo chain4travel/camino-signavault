@@ -18,7 +18,7 @@ To install Signavault, follow these steps:
   - `listenerAddress`: the address where the service will listen for requests (e.g., `:8080`).
   - `caminoNode`: the URL of the Camino node that signavault will connect to (e.g., `http://localhost:9650`).
   - `networkID`: the ID of the running Camino network (e.g., `1002`).
-  - `database.dsn`: the connection string for the database (e.g., `root:password@tcp(mysql:3306)/signavault`).
+  - `database.dsn`: the connection string for the database (e.g., `root:password@tcp(mysql:3306)/signavault?parseTime=true`).
 - Go to the `docker/local` directory: `cd docker/local`.
 - Run `docker-compose up`. This will start the database and the migration scripts.
 - In a new terminal window, go to the `cmd/camino-signavault` directory.
