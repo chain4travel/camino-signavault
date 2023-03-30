@@ -98,7 +98,7 @@ func (h *MultisigHandler) GetAllMultisigTxForAlias(ctx *gin.Context) {
 		ctx.JSON(400,
 			&dto.SignavaultError{
 				Message: fmt.Sprintf("Multisig transactions not found for alias %s", alias),
-				Error:   err.Error(),
+				Error:   "not found",
 			})
 		return
 	}
