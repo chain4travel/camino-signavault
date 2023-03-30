@@ -16,7 +16,7 @@ type MultisigTx struct {
 	OutputOwners  string            `json:"outputOwners" binding:"required"`
 	Metadata      string            `json:"metadata"`
 	Owners        []MultisigTxOwner `json:"owners" binding:"required"`
-	Timestamp     time.Time         `json:"timestamp"`
+	Timestamp     time.Time         `json:"timestamp" binding:"required"`
 }
 
 type MultisigTxOwner struct {
