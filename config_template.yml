@@ -1,0 +1,6 @@
+listenerAddress: ":8080"
+caminoNode: "CAMINO_API_NODE_URL"
+networkID: NETWORK_ID
+database:
+  dsn: "DB_CONNECTION/signavault?parseTime=true"
+  type: "mysql"
