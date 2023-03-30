@@ -127,6 +127,9 @@ func (s *multisigService) GetAllMultisigTxForAlias(alias string, timestamp strin
 	if err != nil {
 		return nil, fmt.Errorf("couldn't get txs for alias %s: %w", alias, err)
 	}
+	if tx == nil {
+		return nil, nil
+	}
 	if len(*tx) <= 0 {
 		return &[]model.MultisigTx{}, nil
 	}
