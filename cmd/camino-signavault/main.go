@@ -6,12 +6,13 @@
 package main
 
 import (
-	"github.com/gin-contrib/cors"
 	"log"
+
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 
 	"github.com/chain4travel/camino-signavault/handler"
 	"github.com/chain4travel/camino-signavault/util"
-	"github.com/gin-gonic/gin"
 )
 
 // Command to generate swagger docs (root dir)
