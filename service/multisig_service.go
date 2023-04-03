@@ -33,7 +33,6 @@ var (
 	errAddressNotOwner  = errors.New("address is not an owner for this alias")
 	errOwnerHasSigned   = errors.New("owner has already signed this alias")
 	errThresholdParsing = errors.New("threshold is not a number")
-	errParsingUtx       = errors.New("error parsing unsigned tx")
 	errParsingTx        = errors.New("error parsing signed tx")
 	errPendingTx        = errors.New("there is already a pending tx for this alias")
 )
@@ -41,6 +40,11 @@ var (
 const (
 	defaultCacheSize = 256
 )
+
+// Wraps the UnsignedTx to force marshalling typeID
+type codecWrapper = struct {
+	txs.UnsignedTx `serialize:"true"`
+}
 
 type MultisigService interface {
 	CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (*model.MultisigTx, error)
@@ -186,7 +190,7 @@ func (s *multisigService) IssueMultisigTx(sendTxArgs *dto.IssueTxArgs) (ids.ID, 
 		return ids.Empty, err
 	}
 
-	utxBytes, _ := txs.Codec.Marshal(txs.Version, tx.Unsigned)
+	utxBytes, _ := txs.Codec.Marshal(txs.Version, codecWrapper{tx.Unsigned})
 	utxHash := hashing.ComputeHash256(utxBytes)
 	utxHashStr := fmt.Sprintf("%x", utxHash)
 
@@ -283,27 +287,7 @@ func (s *multisigService) unmarshalTx(txHexString string) (txs.Tx, error) {
 	return tx, nil
 }
 
-// unmarshal unsigned tx
-func (s *multisigService) unmarshalUnsignedTx(txHexString string) (txs.UnsignedTx, error) {
-	var utx txs.UnsignedTx
-	txBytes := common.FromHex(txHexString)
-
-	_, err := txs.Codec.Unmarshal(txBytes, &utx)
-	if err != nil {
-		return utx, err
-	}
-
-	return utx, nil
-}
-
 func (s *multisigService) generatedId(unsignedTx string) (string, error) {
-	utx, err := s.unmarshalUnsignedTx(unsignedTx)
-	if err != nil {
-		return "", errParsingUtx
-	}
-	utxBytes, err := txs.Codec.Marshal(txs.Version, utx)
-	if err != nil {
-		return "", errParsingUtx
-	}
-	return fmt.Sprintf("%x", hashing.ComputeHash256(utxBytes)), nil
+	txBytes := common.FromHex(unsignedTx)
+	return fmt.Sprintf("%x", hashing.ComputeHash256(txBytes)), nil
 }
