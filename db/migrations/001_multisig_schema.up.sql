@@ -7,7 +7,7 @@ CREATE TABLE multisig_tx
     transaction_id  VARCHAR(56)     NULL,
     output_owners   VARCHAR(255)    NOT NULL,
     metadata        VARCHAR(255)    NOT NULL,
-    created_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at      DATETIME        NOT NULL,
     PRIMARY KEY (id)
 );
 
@@ -20,7 +20,7 @@ CREATE TABLE multisig_tx_owners
     address        CHAR(51)         NOT NULL,
     signature      VARCHAR(255)     NULL,
     is_signer      BOOLEAN          NOT NULL DEFAULT FALSE,
-    created_at     TIMESTAMP        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at     DATETIME         NOT NULL,
     FOREIGN KEY (multisig_tx_id) REFERENCES multisig_tx (id),
     PRIMARY KEY (multisig_tx_id, address)
 );
