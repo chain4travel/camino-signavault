@@ -8,6 +8,7 @@ package service
 import (
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/chain4travel/camino-signavault/dao"
 	"github.com/chain4travel/camino-signavault/dto"
@@ -53,6 +54,7 @@ func TestCreateMultisigTx(t *testing.T) {
 		TransactionId: "",
 		OutputOwners:  "OutputOwners",
 		Metadata:      "",
+		Timestamp:     time.Now(),
 		Owners: []model.MultisigTxOwner{
 			{
 				MultisigTxId: id,
