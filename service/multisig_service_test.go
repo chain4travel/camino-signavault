@@ -8,6 +8,7 @@ package service
 import (
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/chain4travel/camino-signavault/dao"
 	"github.com/chain4travel/camino-signavault/dto"
@@ -32,7 +33,7 @@ func TestCreateMultisigTx(t *testing.T) {
 	}
 
 	unsignedTx := "000000002004000003ea010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-	id := "bc6246f58b5aba675f4071bd1a13d7a774384e42f301208d1c2b0f22ee602e69"
+	id := "cec9762115a58339c0f5e9ae582c1879300c1ff7303f9b566a95cf5ebe2a9d28"
 
 	alias := "P-kopernikus1k4przmfu79ypp4u7y98glmdpzwk0u3sc7saazy"
 	mockAliasInfo := &model.AliasInfo{
@@ -53,6 +54,7 @@ func TestCreateMultisigTx(t *testing.T) {
 		TransactionId: "",
 		OutputOwners:  "OutputOwners",
 		Metadata:      "",
+		Timestamp:     time.Now(),
 		Owners: []model.MultisigTxOwner{
 			{
 				MultisigTxId: id,

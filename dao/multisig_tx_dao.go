@@ -60,11 +60,11 @@ func (d *multisigTxDao) CreateMultisigTx(id string, alias string, threshold int,
 		return "", err
 	}
 
-	stmt, err := tx.Prepare("INSERT INTO multisig_tx (id, alias, threshold, unsigned_tx, output_owners, metadata) VALUES (?, ?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("INSERT INTO multisig_tx (id, alias, threshold, unsigned_tx, output_owners, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		return "", err
 	}
-	_, err = stmt.Exec(id, alias, threshold, unsignedTx, outputOwners, metadata)
+	_, err = stmt.Exec(id, alias, threshold, unsignedTx, outputOwners, metadata, time.Now().UTC())
 	if err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			log.Printf("Execute statement failed: %v, unable to rollback: %v", err, rollbackErr)
@@ -81,11 +81,11 @@ func (d *multisigTxDao) CreateMultisigTx(id string, alias string, threshold int,
 			ownerSignature = signature
 		}
 
-		stmt, err := tx.Prepare("INSERT INTO multisig_tx_owners (multisig_tx_id, address, signature, is_signer) VALUES (?, ?, ?, ?)")
+		stmt, err := tx.Prepare("INSERT INTO multisig_tx_owners (multisig_tx_id, address, signature, is_signer, created_at) VALUES (?, ?, ?, ?, ?)")
 		if err != nil {
 			return "", err
 		}
-		_, err = stmt.Exec(id, owner, ownerSignature, isSigner)
+		_, err = stmt.Exec(id, owner, ownerSignature, isSigner, time.Now().UTC())
 		if err != nil {
 			if rollbackErr := tx.Rollback(); rollbackErr != nil {
 				log.Printf("Execute statement failed: %v, unable to rollback: %v", err, rollbackErr)
@@ -201,7 +201,7 @@ func (d *multisigTxDao) GetMultisigTx(id string, alias string, owner string) (*[
 				TransactionId: txTransactionId.String,
 				OutputOwners:  txOutputOwners,
 				Metadata:      txMetadata,
-				Timestamp:     txCreatedAt,
+				Timestamp:     txCreatedAt.UTC(),
 			}
 		}
 
