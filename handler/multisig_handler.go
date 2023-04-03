@@ -94,14 +94,6 @@ func (h *MultisigHandler) GetAllMultisigTxForAlias(ctx *gin.Context) {
 			})
 		return
 	}
-	if multisigTx == nil {
-		ctx.JSON(400,
-			&dto.SignavaultError{
-				Message: fmt.Sprintf("Multisig transactions not found for alias %s", alias),
-				Error:   "not found",
-			})
-		return
-	}
 	ctx.JSON(200, multisigTx)
 }
 
