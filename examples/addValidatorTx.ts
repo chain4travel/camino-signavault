@@ -91,7 +91,6 @@ const sendRegisterNodeTx = async (): Promise<any> => {
 
     // these are serialized to test if their methods are
     // working properly
-    let unsignedTxHex: string = ""
     let outputOwnersHex: string = ""
 
     // simulate tx creation
@@ -115,23 +114,17 @@ const sendRegisterNodeTx = async (): Promise<any> => {
     )
 
     // turn it into a hex blob
-    unsignedTxHex = unsignedTx.toBuffer().toString("hex")
+    const txbuff = unsignedTx.toBuffer()
+    const msg: Buffer = Buffer.from(
+        createHash("sha256").update(txbuff).digest()
+    )
+
     outputOwnersHex = OutputOwners.toArray(
         unsignedTx.getTransaction().getOutputOwners()
     ).toString("hex")
 
     // simulate signing
     {
-        // deserialize
-        let unsignedTx = new UnsignedTx()
-        unsignedTx.fromBuffer(Buffer.from(unsignedTxHex, "hex"))
-
-        // Create the hash from the tx
-        const txbuff = unsignedTx.toBuffer()
-        const msg: Buffer = Buffer.from(
-            createHash("sha256").update(txbuff).digest()
-        )
-
         for (let address of pAddresses) {
             // We need the keychain for signing
             const keyPair = pKeychain.getKey(address)
@@ -147,7 +140,7 @@ const sendRegisterNodeTx = async (): Promise<any> => {
     try {
         await signavault.createMultisigTx({
             alias: msigAlias,
-            unsignedTx: unsignedTxHex,
+            unsignedTx: txbuff.toString('hex'),
             signature: signatures[0][1],
             outputOwners: outputOwnersHex,
             // we send node's signature as metadata so it can be used form the issuer
@@ -297,7 +290,6 @@ const sendAddValidatorTx = async (): Promise<any> => {
 
     // these are serialized to test if their methods are
     // working properly
-    let unsignedTxHex: string = ""
     let outputOwnersHex: string = ""
 
     // simulate tx creation
@@ -330,24 +322,17 @@ const sendAddValidatorTx = async (): Promise<any> => {
     )
 
     // turn it into a hex blob
-    unsignedTxHex = unsignedTx.toBuffer().toString("hex")
+    const txbuff = unsignedTx.toBuffer()
+    const msg: Buffer = Buffer.from(
+        createHash("sha256").update(txbuff).digest()
+    )
+
     outputOwnersHex = OutputOwners.toArray(
         unsignedTx.getTransaction().getOutputOwners()
     ).toString("hex")
 
-
     // simulate signing
     {
-        // deserialize
-        let unsignedTx = new UnsignedTx()
-        unsignedTx.fromBuffer(Buffer.from(unsignedTxHex, "hex"))
-
-        // Create the hash from the tx
-        const txbuff = unsignedTx.toBuffer()
-        const msg: Buffer = Buffer.from(
-            createHash("sha256").update(txbuff).digest()
-        )
-
         for (let address of pAddresses) {
             // We need the keychain for signing
             const keyPair = pKeychain.getKey(address)
@@ -363,7 +348,7 @@ const sendAddValidatorTx = async (): Promise<any> => {
     try {
         await signavault.createMultisigTx({
             alias: msigAlias,
-            unsignedTx: unsignedTxHex,
+            unsignedTx: txbuff.toString('hex'),
             signature: signatures[0][1],
             outputOwners: outputOwnersHex,
             // we send node's signature as metadata so it can be used form the issuer
@@ -432,7 +417,7 @@ const sendAddValidatorTx = async (): Promise<any> => {
 
         // deserialize
         let unsignedTx = new UnsignedTx()
-        unsignedTx.fromBuffer(Buffer.from(unsignedTxHex, "hex"))
+        unsignedTx.fromBuffer(Buffer.from(pendingMultisigTx.unsignedTx, "hex"))
 
         // parse and set output owners - are requried for msig resolving
         let parsedOwners: OutputOwners[] = OutputOwners.fromArray(
