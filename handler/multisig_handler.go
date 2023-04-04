@@ -7,6 +7,7 @@ package handler
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/chain4travel/camino-signavault/dao"
 	"github.com/chain4travel/camino-signavault/db"
@@ -41,7 +42,7 @@ func (h *MultisigHandler) CreateMultisigTx(ctx *gin.Context) {
 	var args *dto.MultisigTxArgs
 	err := ctx.BindJSON(&args)
 	if err != nil {
-		ctx.JSON(400,
+		ctx.JSON(http.StatusBadRequest,
 			&dto.SignavaultError{
 				Message: "Error parsing multisig transaction from JSON",
 				Error:   err.Error(),
@@ -51,14 +52,14 @@ func (h *MultisigHandler) CreateMultisigTx(ctx *gin.Context) {
 
 	response, err := h.multisigService.CreateMultisigTx(args)
 	if err != nil {
-		ctx.JSON(400,
+		ctx.JSON(http.StatusBadRequest,
 			&dto.SignavaultError{
 				Message: "Error parsing multisig transaction",
 				Error:   err.Error(),
 			})
 		return
 	}
-	ctx.JSON(201, *response)
+	ctx.JSON(http.StatusCreated, *response)
 }
 
 // GetAllMultisigTxForAlias godoc
@@ -87,14 +88,14 @@ func (h *MultisigHandler) GetAllMultisigTxForAlias(ctx *gin.Context) {
 
 	multisigTx, err := h.multisigService.GetAllMultisigTxForAlias(alias, timestamp, signature)
 	if err != nil {
-		ctx.JSON(400,
+		ctx.JSON(http.StatusBadRequest,
 			&dto.SignavaultError{
 				Message: fmt.Sprintf("Error getting all multisig transactions for alias %s", alias),
 				Error:   err.Error(),
 			})
 		return
 	}
-	ctx.JSON(200, multisigTx)
+	ctx.JSON(http.StatusOK, multisigTx)
 }
 
 // SignMultisigTx godoc
@@ -115,7 +116,7 @@ func (h *MultisigHandler) SignMultisigTx(ctx *gin.Context) {
 	var signer *dto.SignTxArgs
 	err = ctx.BindJSON(&signer)
 	if err != nil {
-		ctx.JSON(400,
+		ctx.JSON(http.StatusBadRequest,
 			&dto.SignavaultError{
 				Message: "Error parsing signer from JSON",
 				Error:   err.Error(),
@@ -125,7 +126,11 @@ func (h *MultisigHandler) SignMultisigTx(ctx *gin.Context) {
 
 	_, err = h.multisigService.SignMultisigTx(id, signer)
 	if err != nil {
-		ctx.JSON(400,
+		code := http.StatusBadRequest
+		if err == service.ErrTxNotExists {
+			code = http.StatusNotFound
+		}
+		ctx.JSON(code,
 			&dto.SignavaultError{
 				Message: fmt.Sprintf("Error adding signer to multisig transaction with id %s", id),
 				Error:   err.Error(),
@@ -133,7 +138,7 @@ func (h *MultisigHandler) SignMultisigTx(ctx *gin.Context) {
 		return
 	}
 	multisigAlias, _ := h.multisigService.GetMultisigTx(id)
-	ctx.JSON(200, multisigAlias)
+	ctx.JSON(http.StatusOK, multisigAlias)
 }
 
 // IssueMultisigTx issues a new multisig transaction with the given parameters.
@@ -150,7 +155,7 @@ func (h *MultisigHandler) IssueMultisigTx(ctx *gin.Context) {
 	var issueTxArgs *dto.IssueTxArgs
 	err := ctx.BindJSON(&issueTxArgs)
 	if err != nil {
-		ctx.JSON(400,
+		ctx.JSON(http.StatusBadRequest,
 			&dto.SignavaultError{
 				Message: "Error parsing JSON for issuing multisig transaction",
 				Error:   err.Error(),
@@ -160,18 +165,18 @@ func (h *MultisigHandler) IssueMultisigTx(ctx *gin.Context) {
 
 	txID, err := h.multisigService.IssueMultisigTx(issueTxArgs)
 	if err != nil {
-		ctx.JSON(400,
+		ctx.JSON(http.StatusBadRequest,
 			&dto.SignavaultError{
 				Message: "Error issuing multisig transaction",
 				Error:   err.Error(),
 			})
 		return
 	}
-	ctx.JSON(200, &dto.IssueTxResponse{TxID: txID.String()})
+	ctx.JSON(http.StatusOK, &dto.IssueTxResponse{TxID: txID.String()})
 }
 
 func (h *MultisigHandler) throwMissingQueryParamError(ctx *gin.Context, param string) {
-	ctx.JSON(400,
+	ctx.JSON(http.StatusBadRequest,
 		&dto.SignavaultError{
 			Message: fmt.Sprintf("Missing query parameter '%s'", param),
 			Error:   "missing query parameter",
