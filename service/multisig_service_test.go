@@ -119,7 +119,7 @@ func TestCreateMultisigTx(t *testing.T) {
 					OutputOwners: mockTx.OutputOwners,
 				},
 			},
-			err: errPendingTx,
+			err: ErrPendingTx,
 		},
 	}
 	for _, tt := range tests {

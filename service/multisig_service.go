@@ -27,14 +27,14 @@ import (
 )
 
 var (
-	errTxNotExists      = errors.New("multisig transaction does not exist")
-	errEmptySignature   = errors.New("signature is empty")
-	errParsingSignature = errors.New("failed to retrieve address from signature")
-	errAddressNotOwner  = errors.New("address is not an owner for this alias")
-	errOwnerHasSigned   = errors.New("owner has already signed this alias")
-	errThresholdParsing = errors.New("threshold is not a number")
-	errParsingTx        = errors.New("error parsing signed tx")
-	errPendingTx        = errors.New("there is already a pending tx for this alias")
+	ErrTxNotExists      = errors.New("multisig transaction does not exist")
+	ErrEmptySignature   = errors.New("signature is empty")
+	ErrParsingSignature = errors.New("failed to retrieve address from signature")
+	ErrAddressNotOwner  = errors.New("address is not an owner for this alias")
+	ErrOwnerHasSigned   = errors.New("owner has already signed this alias")
+	ErrThresholdParsing = errors.New("threshold is not a number")
+	ErrParsingTx        = errors.New("error parsing signed tx")
+	ErrPendingTx        = errors.New("there is already a pending tx for this alias")
 )
 
 const (
@@ -82,7 +82,7 @@ func (s *multisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 		return nil, err
 	}
 	if exists {
-		return nil, errPendingTx
+		return nil, ErrPendingTx
 	}
 
 	aliasInfo, err := s.getAliasInfo(alias)
@@ -96,16 +96,16 @@ func (s *multisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 	metadata := multisigTxArgs.Metadata
 	creator, err := s.getAddressFromSignature(unsignedTx, signature, true)
 	if err != nil {
-		return nil, errParsingSignature
+		return nil, ErrParsingSignature
 	}
 	threshold, err := strconv.Atoi(aliasInfo.Result.Threshold)
 	if err != nil {
-		return nil, errThresholdParsing
+		return nil, ErrThresholdParsing
 	}
 	owners := aliasInfo.Result.Addresses
 
 	if !s.isCreatorOwner(owners, creator) {
-		return nil, errAddressNotOwner
+		return nil, ErrAddressNotOwner
 	}
 	// generate txId by hasing the unsignedTx
 	id, err := s.generatedId(unsignedTx)
@@ -124,7 +124,7 @@ func (s *multisigService) GetAllMultisigTxForAlias(alias string, timestamp strin
 	signatureArgs := alias + timestamp
 	owner, err := s.getAddressFromSignature(signatureArgs, signature, false)
 	if err != nil {
-		return nil, errParsingSignature
+		return nil, ErrParsingSignature
 	}
 
 	tx, err := s.dao.GetMultisigTx("", alias, owner)
@@ -144,8 +144,8 @@ func (s *multisigService) GetMultisigTx(id string) (*model.MultisigTx, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(*tx) <= 0 {
-		return nil, errTxNotExists
+	if tx == nil || len(*tx) <= 0 {
+		return nil, ErrTxNotExists
 	}
 
 	return &(*tx)[0], nil
@@ -158,20 +158,20 @@ func (s *multisigService) SignMultisigTx(id string, signer *dto.SignTxArgs) (*mo
 	}
 
 	if signer.Signature == "" {
-		return nil, errEmptySignature
+		return nil, ErrEmptySignature
 	}
 
 	signerAddr, err := s.getAddressFromSignature(multisigTx.UnsignedTx, signer.Signature, true)
 	if err != nil {
-		return nil, errParsingSignature
+		return nil, ErrParsingSignature
 	}
 
 	isOwner, isSigner := s.isOwner(multisigTx, signerAddr)
 	if !isOwner {
-		return nil, errAddressNotOwner
+		return nil, ErrAddressNotOwner
 	}
 	if isSigner {
-		return nil, errOwnerHasSigned
+		return nil, ErrOwnerHasSigned
 	}
 
 	_, err = s.dao.AddSigner(id, signer.Signature, signerAddr)
@@ -199,17 +199,17 @@ func (s *multisigService) IssueMultisigTx(sendTxArgs *dto.IssueTxArgs) (ids.ID, 
 
 	signerAddr, err := s.getAddressFromSignature(sendTxArgs.SignedTx, sendTxArgs.Signature, true)
 	if err != nil {
-		return ids.Empty, errParsingSignature
+		return ids.Empty, ErrParsingSignature
 	}
 
 	isOwner, _ := s.isOwner(storedTx, signerAddr)
 	if !isOwner {
-		return ids.Empty, errAddressNotOwner
+		return ids.Empty, ErrAddressNotOwner
 	}
 
 	signedBytes, err := txs.Codec.Marshal(txs.Version, tx)
 	if err != nil {
-		return ids.Empty, errParsingTx
+		return ids.Empty, ErrParsingTx
 	}
 
 	txID, err := s.nodeService.IssueTx(signedBytes)
