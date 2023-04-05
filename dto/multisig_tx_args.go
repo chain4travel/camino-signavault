@@ -11,6 +11,7 @@ type MultisigTxArgs struct {
 	Signature    string `json:"signature" binding:"required"`
 	OutputOwners string `json:"outputOwners" binding:"required"`
 	Metadata     string `json:"metadata"`
+	Expiration   int64  `json:"expiration"`
 }
 
 type SignTxArgs struct {

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 
@@ -35,6 +36,7 @@ var (
 	ErrThresholdParsing = errors.New("threshold is not a number")
 	ErrParsingTx        = errors.New("error parsing signed tx")
 	ErrPendingTx        = errors.New("there is already a pending tx for this alias")
+	ErrExpired          = errors.New("expiration date has passed")
 )
 
 const (
@@ -90,6 +92,19 @@ func (s *multisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 		return nil, err
 	}
 
+	// expiration date
+	exp := multisigTxArgs.Expiration
+	var expiresAt *time.Time
+	if exp == 0 {
+		expiresAt = nil
+	} else {
+		t := time.Unix(exp, 0).UTC()
+		expiresAt = &t
+	}
+	if expiresAt != nil && expiresAt.Before(time.Now()) {
+		return nil, ErrExpired
+	}
+
 	signature := multisigTxArgs.Signature
 	unsignedTx := multisigTxArgs.UnsignedTx
 	outputOwners := multisigTxArgs.OutputOwners
@@ -113,7 +128,7 @@ func (s *multisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 		return nil, err
 	}
 
-	_, err = s.dao.CreateMultisigTx(id, alias, threshold, unsignedTx, creator, signature, outputOwners, metadata, owners)
+	_, err = s.dao.CreateMultisigTx(id, alias, threshold, unsignedTx, creator, signature, outputOwners, metadata, owners, expiresAt)
 	if err != nil {
 		return nil, err
 	}

@@ -128,6 +128,7 @@ func TestGetAllMultisigTxForAlias(t *testing.T) {
 	mockMultisigService := service.NewMockMultisigService(ctrl)
 	h := NewMultisigHandler(mockMultisigService)
 
+	now := time.Now()
 	mock := model.MultisigTx{
 		Id:           "1",
 		Alias:        "P-kopernikus1k4przmfu79ypp4u7y98glmdpzwk0u3sc7saazy",
@@ -142,7 +143,7 @@ func TestGetAllMultisigTxForAlias(t *testing.T) {
 				Signature:    "4d974561be4675853e0bc6062eac412228e94b16c6ba86dcfedccc1ef2b2a5156ab5aaddbd11f9d88786563fe9f3c17ca5e44a9936621b027b3179284dd86dc000",
 			},
 		},
-		Timestamp: time.Now(),
+		Timestamp: &now,
 	}
 	mockResult := make([]model.MultisigTx, 0)
 	mockResult = append(mockResult, mock)
@@ -292,6 +293,7 @@ func TestSignMultisigTx(t *testing.T) {
 	mockMultisigService := service.NewMockMultisigService(ctrl)
 	h := NewMultisigHandler(mockMultisigService)
 
+	now := time.Now().UTC()
 	mockResult := &model.MultisigTx{
 		Id:           "1",
 		UnsignedTx:   "000000002004000003ea010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
@@ -306,7 +308,7 @@ func TestSignMultisigTx(t *testing.T) {
 				Signature:    "4d974561be4675853e0bc6062eac412228e94b16c6ba86dcfedccc1ef2b2a5156ab5aaddbd11f9d88786563fe9f3c17ca5e44a9936621b027b3179284dd86dc000",
 			},
 		},
-		Timestamp: time.Now().UTC(),
+		Timestamp: &now,
 	}
 	resultAsJson, _ := json.Marshal(mockResult)
 
