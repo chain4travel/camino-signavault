@@ -6,10 +6,6 @@
 package service
 
 import (
-	"strconv"
-	"testing"
-	"time"
-
 	"github.com/chain4travel/camino-signavault/dao"
 	"github.com/chain4travel/camino-signavault/dto"
 	"github.com/chain4travel/camino-signavault/model"
@@ -19,6 +15,8 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
+	"strconv"
+	"testing"
 )
 
 const networkId = uint32(1002)
@@ -54,7 +52,6 @@ func TestCreateMultisigTx(t *testing.T) {
 		TransactionId: "",
 		OutputOwners:  "OutputOwners",
 		Metadata:      "",
-		Timestamp:     time.Now(),
 		Owners: []model.MultisigTxOwner{
 			{
 				MultisigTxId: id,
@@ -70,7 +67,7 @@ func TestCreateMultisigTx(t *testing.T) {
 	}
 
 	thresholdInt, _ := strconv.Atoi(mockAliasInfo.Result.Threshold)
-	mockDao.EXPECT().CreateMultisigTx(mockTx.Id, mockTx.Alias, thresholdInt, mockTx.UnsignedTx, mockTx.Owners[0].Address, mockTx.Owners[0].Signature, mockTx.OutputOwners, mockTx.Metadata, mockAliasInfo.Result.Addresses).Return(mockTx.Id, nil)
+	mockDao.EXPECT().CreateMultisigTx(mockTx.Id, mockTx.Alias, thresholdInt, mockTx.UnsignedTx, mockTx.Owners[0].Address, mockTx.Owners[0].Signature, mockTx.OutputOwners, mockTx.Metadata, mockAliasInfo.Result.Addresses, nil).Return(mockTx.Id, nil)
 	mockDao.EXPECT().GetMultisigTx(mockTx.Id, "", "").Return(&[]model.MultisigTx{mockTx}, nil).AnyTimes()
 	mockDao.EXPECT().PendingAliasExists("P-kopernikus1fq0jc8svlyazhygkj0s36qnl6s0km0h3uuc99e").Return(true, nil)
 	mockDao.EXPECT().PendingAliasExists(gomock.Any()).Return(false, nil).AnyTimes()
@@ -93,6 +90,7 @@ func TestCreateMultisigTx(t *testing.T) {
 					UnsignedTx:   mockTx.UnsignedTx,
 					Signature:    mockTx.Owners[0].Signature,
 					OutputOwners: mockTx.OutputOwners,
+					//Expiration:   mockTx.Expiration.Unix(),
 				},
 			},
 			err: nil,

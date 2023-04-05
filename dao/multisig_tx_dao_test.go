@@ -113,6 +113,7 @@ func TestCreateMultisigTx(t *testing.T) {
 		outputOwners string
 		owners       []string
 		metadata     string
+		expiration   time.Time
 	}
 	tests := []struct {
 		name    string
@@ -135,6 +136,7 @@ func TestCreateMultisigTx(t *testing.T) {
 				signature:    "4d974561be4675853e0bc6062eac412228e94b16c6ba86dcfedccc1ef2b2a5156ab5aaddbd11f9d88786563fe9f3c17ca5e44a9936621b027b3179284dd86dc000",
 				outputOwners: "OutputOwners",
 				metadata:     "metadata",
+				expiration:   time.Now().Add(time.Hour * 24 * 7),
 				owners:       []string{"P-kopernikus1g65uqn6t77p656w64023nh8nd9updzmxh8ttv3", "P-kopernikus18jma8ppw3nhx5r4ap8clazz0dps7rv5uuvjh68"},
 			},
 			want:    "bc6246f58b5aba675f4071bd1a13d7a774384e42f301208d1c2b0f22ee602e69",
@@ -165,7 +167,7 @@ func TestCreateMultisigTx(t *testing.T) {
 			d := &multisigTxDao{
 				db: tt.fields.db,
 			}
-			got, err := d.CreateMultisigTx(tt.args.id, tt.args.alias, tt.args.threshold, tt.args.unsignedTx, tt.args.creator, tt.args.signature, tt.args.outputOwners, tt.args.metadata, tt.args.owners)
+			got, err := d.CreateMultisigTx(tt.args.id, tt.args.alias, tt.args.threshold, tt.args.unsignedTx, tt.args.creator, tt.args.signature, tt.args.outputOwners, tt.args.metadata, tt.args.owners, &tt.args.expiration)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CreateMultisigTx() error = %v, wantErr %v", err, tt.wantErr)
 				return
