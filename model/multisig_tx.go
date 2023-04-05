@@ -5,7 +5,9 @@
 
 package model
 
-import "time"
+import (
+	"time"
+)
 
 type MultisigTx struct {
 	Id            string            `json:"id" binding:"required"`
@@ -15,8 +17,9 @@ type MultisigTx struct {
 	TransactionId string            `json:"transactionId"`
 	OutputOwners  string            `json:"outputOwners" binding:"required"`
 	Metadata      string            `json:"metadata"`
+	Expiration    *time.Time        `json:"expiration,omitempty"`
 	Owners        []MultisigTxOwner `json:"owners" binding:"required"`
-	Timestamp     time.Time         `json:"timestamp" binding:"required"`
+	Timestamp     *time.Time        `json:"timestamp" binding:"required"`
 }
 
 type MultisigTxOwner struct {
