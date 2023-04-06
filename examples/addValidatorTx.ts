@@ -352,7 +352,8 @@ const sendAddValidatorTx = async (): Promise<any> => {
             signature: signatures[0][1],
             outputOwners: outputOwnersHex,
             // we send node's signature as metadata so it can be used form the issuer
-            metadata: signatures[2][1]
+            metadata: signatures[2][1],
+            expiration: Math.floor(startDate)
         })
     } catch (e) {
         console.log(e.response.data)
