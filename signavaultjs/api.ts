@@ -69,6 +69,12 @@ export interface DtoMultisigTxArgs {
     'alias': string;
     /**
      * 
+     * @type {number}
+     * @memberof DtoMultisigTxArgs
+     */
+    'expiration'?: number;
+    /**
+     * 
      * @type {string}
      * @memberof DtoMultisigTxArgs
      */
@@ -136,6 +142,12 @@ export interface ModelMultisigTx {
      * @memberof ModelMultisigTx
      */
     'alias': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ModelMultisigTx
+     */
+    'expiration'?: string;
     /**
      * 
      * @type {string}
