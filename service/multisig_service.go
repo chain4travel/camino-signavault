@@ -40,7 +40,8 @@ var (
 )
 
 const (
-	defaultCacheSize = 256
+	defaultCacheSize      = 256
+	defaultExpirationDays = 14
 )
 
 // Wraps the UnsignedTx to force marshalling typeID
@@ -93,15 +94,23 @@ func (s *multisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 	}
 
 	// expiration date
-	exp := multisigTxArgs.Expiration
 	var expiresAt *time.Time
-	if exp == 0 {
-		expiresAt = nil
-	} else {
-		t := time.Unix(exp, 0).UTC()
-		expiresAt = &t
+	var t time.Time
+	exp := multisigTxArgs.Expiration
+	now := time.Now().UTC()
+	expirationDays := s.config.TxExpiration
+	// if the value is 0, use the default expiration
+	if expirationDays <= 0 {
+		expirationDays = defaultExpirationDays
 	}
-	if expiresAt != nil && expiresAt.Before(time.Now()) {
+	if exp == 0 {
+		t = now.Add(time.Hour * 24 * time.Duration(expirationDays))
+	} else {
+		t = time.Unix(exp, 0).UTC()
+
+	}
+	expiresAt = &t
+	if expiresAt != nil && expiresAt.Before(now) {
 		return nil, ErrExpired
 	}
 

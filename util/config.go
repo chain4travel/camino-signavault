@@ -16,6 +16,7 @@ type Config struct {
 	Database        Database `mapstructure:"database"`
 	CaminoNode      string   `mapstructure:"caminoNode"`
 	NetworkId       uint32   `mapstructure:"networkId"`
+	TxExpiration    int      `mapstructure:"txExpirationDays"`
 }
 
 type Database struct {
