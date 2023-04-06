@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"strconv"
 	"testing"
+	"time"
 )
 
 const networkId = uint32(1002)
@@ -44,14 +45,16 @@ func TestCreateMultisigTx(t *testing.T) {
 		Id: 1,
 	}
 
+	now := time.Now().UTC().Add(time.Hour * 24 * 14)
 	mockTx := model.MultisigTx{
 		Id:            id,
-		Alias:         "P-kopernikus1k4przmfu79ypp4u7y98glmdpzwk0u3sc7saazy",
 		UnsignedTx:    unsignedTx,
+		Alias:         "P-kopernikus1k4przmfu79ypp4u7y98glmdpzwk0u3sc7saazy",
 		Threshold:     2,
 		TransactionId: "",
 		OutputOwners:  "OutputOwners",
 		Metadata:      "",
+		Expiration:    &now,
 		Owners: []model.MultisigTxOwner{
 			{
 				MultisigTxId: id,
@@ -67,7 +70,8 @@ func TestCreateMultisigTx(t *testing.T) {
 	}
 
 	thresholdInt, _ := strconv.Atoi(mockAliasInfo.Result.Threshold)
-	mockDao.EXPECT().CreateMultisigTx(mockTx.Id, mockTx.Alias, thresholdInt, mockTx.UnsignedTx, mockTx.Owners[0].Address, mockTx.Owners[0].Signature, mockTx.OutputOwners, mockTx.Metadata, mockAliasInfo.Result.Addresses, nil).Return(mockTx.Id, nil)
+	//mockTx.Expiration.Round(time.Second)
+	mockDao.EXPECT().CreateMultisigTx(mockTx.Id, mockTx.Alias, thresholdInt, mockTx.UnsignedTx, mockTx.Owners[0].Address, mockTx.Owners[0].Signature, mockTx.OutputOwners, mockTx.Metadata, mockAliasInfo.Result.Addresses, gomock.Any()).Return(mockTx.Id, nil)
 	mockDao.EXPECT().GetMultisigTx(mockTx.Id, "", "").Return(&[]model.MultisigTx{mockTx}, nil).AnyTimes()
 	mockDao.EXPECT().PendingAliasExists("P-kopernikus1fq0jc8svlyazhygkj0s36qnl6s0km0h3uuc99e").Return(true, nil)
 	mockDao.EXPECT().PendingAliasExists(gomock.Any()).Return(false, nil).AnyTimes()
@@ -90,7 +94,7 @@ func TestCreateMultisigTx(t *testing.T) {
 					UnsignedTx:   mockTx.UnsignedTx,
 					Signature:    mockTx.Owners[0].Signature,
 					OutputOwners: mockTx.OutputOwners,
-					//Expiration:   mockTx.Expiration.Unix(),
+					Expiration:   mockTx.Expiration.Unix(),
 				},
 			},
 			err: nil,
@@ -125,11 +129,14 @@ func TestCreateMultisigTx(t *testing.T) {
 			s := NewMultisigService(mockConfig, mockDao, mockNodeService)
 
 			_, err := s.CreateMultisigTx(tt.args.multisigTx)
+
 			if tt.err != nil {
 				require.Equal(t, tt.err, err)
 			} else {
 				require.NoError(t, err)
+
 			}
+
 		})
 	}
 }

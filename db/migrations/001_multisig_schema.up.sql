@@ -7,7 +7,7 @@ CREATE TABLE multisig_tx
     transaction_id  VARCHAR(56)     NULL,
     output_owners   VARCHAR(255)    NOT NULL,
     metadata        VARCHAR(255)    NOT NULL,
-    expires_at      DATETIME        NULL,
+    expires_at      DATETIME        NOT NULL,
     created_at      DATETIME        NOT NULL,
     PRIMARY KEY (id)
 );
