@@ -4,3 +4,4 @@ networkID: NETWORK_ID
 database:
   dsn: "DB_CONNECTION/signavault?parseTime=true"
   type: "mysql"
+txExpirationDays: 14
