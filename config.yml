@@ -4,3 +4,4 @@ networkID: 1002
 database:
   dsn: "root:password@tcp(mysql:3306)/signavault?parseTime=true"
   type: "mysql"
+txExpirationDays: 14
