@@ -331,7 +331,8 @@ func TestPendingAliasExists(t *testing.T) {
 		db *db.Db
 	}
 	type args struct {
-		alias string
+		alias   string
+		chainId string
 	}
 	tests := []struct {
 		name    string
@@ -346,9 +347,34 @@ func TestPendingAliasExists(t *testing.T) {
 				db: &db.Db{DB: conn},
 			},
 			args: args{
-				alias: "alias",
+				alias:   "alias_3",
+				chainId: "11111111111111111111111111111111LpoYY",
 			},
 			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "Test pending tx for existing msig alias on different chain",
+			fields: fields{
+				db: &db.Db{DB: conn},
+			},
+			args: args{
+				alias:   "alias_3",
+				chainId: "jvYyfQTxGMJLuGWa55kdP2p2zSUYsQ5Raupu4TW34ZAUBAbtq",
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "Test complete tx for existing msig alias on different chain",
+			fields: fields{
+				db: &db.Db{DB: conn},
+			},
+			args: args{
+				alias:   "alias_6",
+				chainId: "jvYyfQTxGMJLuGWa55kdP2p2zSUYsQ5Raupu4TW34ZAUBAbtq",
+			},
+			want:    false,
 			wantErr: false,
 		},
 		{
@@ -357,7 +383,8 @@ func TestPendingAliasExists(t *testing.T) {
 				db: &db.Db{DB: conn},
 			},
 			args: args{
-				alias: "alias_2",
+				alias:   "alias_2",
+				chainId: "11111111111111111111111111111111LpoYY",
 			},
 			want:    false,
 			wantErr: false,
@@ -368,7 +395,8 @@ func TestPendingAliasExists(t *testing.T) {
 				db: &db.Db{DB: conn},
 			},
 			args: args{
-				alias: "test",
+				alias:   "test",
+				chainId: "11111111111111111111111111111111LpoYY",
 			},
 			want:    false,
 			wantErr: false,
@@ -379,7 +407,7 @@ func TestPendingAliasExists(t *testing.T) {
 			d := &multisigTxDao{
 				db: tt.fields.db,
 			}
-			got, err := d.PendingAliasExists(tt.args.alias)
+			got, err := d.PendingAliasExists(tt.args.alias, tt.args.chainId)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("PendingAliasExists() error = %v, wantErr %v", err, tt.wantErr)
 				return
