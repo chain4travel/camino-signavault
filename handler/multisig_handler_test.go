@@ -64,8 +64,9 @@ func TestCreateMultisigTx(t *testing.T) {
 						"unsignedTx": "000000002004000003ea010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 						"alias": "P-kopernikus1k4przmfu79ypp4u7y98glmdpzwk0u3sc7saazy",
 						"signature": "4d974561be4675853e0bc6062eac412228e94b16c6ba86dcfedccc1ef2b2a5156ab5aaddbd11f9d88786563fe9f3c17ca5e44a9936621b027b3179284dd86dc000",
-						"OutputOwners": "OutputOwners",
-						"Metadata": "Metadata"
+						"outputOwners": "OutputOwners",
+						"metadata": "Metadata",
+						"chainId": "11111111111111111111111111111111LpoYY"
 						}`,
 			},
 			wantCode: http.StatusCreated,
@@ -78,8 +79,9 @@ func TestCreateMultisigTx(t *testing.T) {
 				Body: ` {
 						"unsignedTx": "000000002004000003ea010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 						"alias": "P-kopernikus1k4przmfu79ypp4u7y98glmdpzwk0u3sc7saazy",
-						"OutputOwners": "OutputOwners",
-						"Metadata": "Metadata"
+						"outputOwners": "OutputOwners",
+						"metadata": "Metadata",
+						"chainId": "11111111111111111111111111111111LpoYY"
 						}`,
 			},
 			wantCode: http.StatusBadRequest,

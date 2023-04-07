@@ -127,17 +127,18 @@ func (s *multisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 		return nil, ErrThresholdParsing
 	}
 	owners := aliasInfo.Result.Addresses
+	chainId := multisigTxArgs.ChainId
 
 	if !s.isCreatorOwner(owners, creator) {
 		return nil, ErrAddressNotOwner
 	}
 	// generate txId by hasing the unsignedTx
-	id, err := s.generatedId(unsignedTx)
+	id, err := s.generateId(unsignedTx)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = s.dao.CreateMultisigTx(id, alias, threshold, unsignedTx, creator, signature, outputOwners, metadata, owners, expiresAt)
+	_, err = s.dao.CreateMultisigTx(id, alias, threshold, chainId, unsignedTx, creator, signature, outputOwners, metadata, owners, expiresAt)
 	if err != nil {
 		return nil, err
 	}
@@ -309,7 +310,7 @@ func (s *multisigService) unmarshalTx(txHexString string) (txs.Tx, error) {
 	return tx, nil
 }
 
-func (s *multisigService) generatedId(unsignedTx string) (string, error) {
+func (s *multisigService) generateId(unsignedTx string) (string, error) {
 	txBytes := common.FromHex(unsignedTx)
 	return fmt.Sprintf("%x", hashing.ComputeHash256(txBytes)), nil
 }
