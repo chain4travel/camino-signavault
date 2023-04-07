@@ -10,17 +10,18 @@ import (
 )
 
 type MultisigTx struct {
-	Id            string            `json:"id" binding:"required"`
-	UnsignedTx    string            `json:"unsignedTx" binding:"required"`
-	Alias         string            `json:"alias" binding:"required"`
-	Threshold     int8              `json:"threshold" binding:"required"`
-	ChainId       string            `json:"chainId" binding:"required"`
-	TransactionId string            `json:"transactionId"`
-	OutputOwners  string            `json:"outputOwners" binding:"required"`
-	Metadata      string            `json:"metadata"`
-	Expiration    *time.Time        `json:"expiration,omitempty"`
-	Owners        []MultisigTxOwner `json:"owners" binding:"required"`
-	Timestamp     *time.Time        `json:"timestamp" binding:"required"`
+	Id                string            `json:"id" binding:"required"`
+	UnsignedTx        string            `json:"unsignedTx" binding:"required"`
+	Alias             string            `json:"alias" binding:"required"`
+	Threshold         int8              `json:"threshold" binding:"required"`
+	ChainId           string            `json:"chainId" binding:"required"`
+	TransactionId     string            `json:"transactionId"`
+	ParentTransaction string            `json:"parentTransaction"`
+	OutputOwners      string            `json:"outputOwners" binding:"required"`
+	Metadata          string            `json:"metadata"`
+	Expiration        *time.Time        `json:"expiration,omitempty"`
+	Owners            []MultisigTxOwner `json:"owners" binding:"required"`
+	Timestamp         *time.Time        `json:"timestamp" binding:"required"`
 }
 
 type MultisigTxOwner struct {
