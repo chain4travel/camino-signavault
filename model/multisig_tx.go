@@ -14,6 +14,7 @@ type MultisigTx struct {
 	UnsignedTx    string            `json:"unsignedTx" binding:"required"`
 	Alias         string            `json:"alias" binding:"required"`
 	Threshold     int8              `json:"threshold" binding:"required"`
+	ChainId       string            `json:"chainId" binding:"required"`
 	TransactionId string            `json:"transactionId"`
 	OutputOwners  string            `json:"outputOwners" binding:"required"`
 	Metadata      string            `json:"metadata"`

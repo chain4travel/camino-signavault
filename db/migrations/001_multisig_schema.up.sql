@@ -4,6 +4,7 @@ CREATE TABLE multisig_tx
     unsigned_tx     VARCHAR(2048)   NOT NULL,
     alias           VARCHAR(255)    NOT NULL,
     threshold       INT             NOT NULL,
+    chain_id        VARCHAR(50)     NOT NULL,
     transaction_id  VARCHAR(56)     NULL,
     output_owners   VARCHAR(255)    NOT NULL,
     metadata        VARCHAR(255)    NOT NULL,
