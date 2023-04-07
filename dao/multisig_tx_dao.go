@@ -33,7 +33,7 @@ func NewMultisigTxDao(db *db.Db) MultisigTxDao {
 func (d *multisigTxDao) PendingAliasExists(alias string) (bool, error) {
 	query := "SELECT count(id) " +
 		"FROM multisig_tx " +
-		"WHERE alias = ? AND transaction_id IS NULL"
+		"WHERE alias = ? AND transaction_id IS NULL AND (expires_at > UTC_TIMESTAMP() OR expires_at IS NULL)"
 	rows, err := d.db.Query(query, alias)
 	if err != nil {
 		return false, err
