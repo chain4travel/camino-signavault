@@ -53,7 +53,7 @@ export interface DtoIssueTxResponse {
      * @type {string}
      * @memberof DtoIssueTxResponse
      */
-    'txID'?: string;
+    'txID': string;
 }
 /**
  * 
@@ -67,6 +67,12 @@ export interface DtoMultisigTxArgs {
      * @memberof DtoMultisigTxArgs
      */
     'alias': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof DtoMultisigTxArgs
+     */
+    'chainId': string;
     /**
      * 
      * @type {number}
@@ -142,6 +148,12 @@ export interface ModelMultisigTx {
      * @memberof ModelMultisigTx
      */
     'alias': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ModelMultisigTx
+     */
+    'chainId': string;
     /**
      * 
      * @type {string}
