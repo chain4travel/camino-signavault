@@ -104,18 +104,9 @@ func TestCreateMultisigTx(t *testing.T) {
 		db *db.Db
 	}
 	type args struct {
-		id           string
-		alias        string
-		threshold    int
-		unsignedTx   string
-		chainId      string
-		creator      string
-		signature    string
-		outputOwners string
-		owners       []string
-		metadata     string
-		expiration   time.Time
+		multisigTx *model.MultisigTx
 	}
+	exp := time.Now().Add(time.Hour * 24 * 7)
 	tests := []struct {
 		name    string
 		fields  fields
@@ -129,17 +120,26 @@ func TestCreateMultisigTx(t *testing.T) {
 				db: &db.Db{DB: conn},
 			},
 			args: args{
-				id:           "bc6246f58b5aba675f4071bd1a13d7a774384e42f301208d1c2b0f22ee602e69",
-				alias:        "P-kopernikus1k4przmfu79ypp4u7y98glmdpzwk0u3sc7saazy",
-				threshold:    2,
-				chainId:      "11111111111111111111111111111111LpoYY",
-				unsignedTx:   "000000002004000003ea010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-				creator:      "P-kopernikus18jma8ppw3nhx5r4ap8clazz0dps7rv5uuvjh68",
-				signature:    "4d974561be4675853e0bc6062eac412228e94b16c6ba86dcfedccc1ef2b2a5156ab5aaddbd11f9d88786563fe9f3c17ca5e44a9936621b027b3179284dd86dc000",
-				outputOwners: "OutputOwners",
-				metadata:     "metadata",
-				expiration:   time.Now().Add(time.Hour * 24 * 7),
-				owners:       []string{"P-kopernikus1g65uqn6t77p656w64023nh8nd9updzmxh8ttv3", "P-kopernikus18jma8ppw3nhx5r4ap8clazz0dps7rv5uuvjh68"},
+				multisigTx: &model.MultisigTx{
+					Id:           "bc6246f58b5aba675f4071bd1a13d7a774384e42f301208d1c2b0f22ee602e69",
+					UnsignedTx:   "000000002004000003ea010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+					Alias:        "P-kopernikus1k4przmfu79ypp4u7y98glmdpzwk0u3sc7saazy",
+					Threshold:    2,
+					ChainId:      "11111111111111111111111111111111LpoYY",
+					OutputOwners: "OutputOwners",
+					Metadata:     "metadata",
+					Expiration:   &exp,
+					Owners: []model.MultisigTxOwner{
+						{
+							Address:   "P-kopernikus18jma8ppw3nhx5r4ap8clazz0dps7rv5uuvjh68",
+							Signature: "4d974561be4675853e0bc6062eac412228e94b16c6ba86dcfedccc1ef2b2a5156ab5aaddbd11f9d88786563fe9f3c17ca5e44a9936621b027b3179284dd86dc000",
+						},
+						{
+							Address:   "P-kopernikus1g65uqn6t77p656w64023nh8nd9updzmxh8ttv3",
+							Signature: "4d974561be4675853e0bc6062eac412228e94b16c6ba86dcfedccc1ef2b2a5156ab5aaddbd11f9d88786563fe9f3c17ca5e44a9936621b027b3179284dd86dc000",
+						},
+					},
+				},
 			},
 			want:    "bc6246f58b5aba675f4071bd1a13d7a774384e42f301208d1c2b0f22ee602e69",
 			wantErr: false,
@@ -150,16 +150,25 @@ func TestCreateMultisigTx(t *testing.T) {
 				db: &db.Db{DB: conn},
 			},
 			args: args{
-				id:           "bc6246f58b5aba675f4071bd1a13d7a774384e42f301208d1c2b0f22ee602e69",
-				alias:        "P-kopernikus1k4przmfu79ypp4u7y98glmdpzwk0u3sc7saazy",
-				threshold:    2,
-				chainId:      "11111111111111111111111111111111LpoYY",
-				unsignedTx:   "000000002004000003ea010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-				creator:      "P-kopernikus18jma8ppw3nhx5r4ap8clazz0dps7rv5uuvjh68",
-				signature:    "4d974561be4675853e0bc6062eac412228e94b16c6ba86dcfedccc1ef2b2a5156ab5aaddbd11f9d88786563fe9f3c17ca5e44a9936621b027b3179284dd86dc000",
-				outputOwners: "OutputOwners",
-				metadata:     "metadata",
-				owners:       []string{"P-kopernikus1g65uqn6t77p656w64023nh8nd9updzmxh8ttv3", "P-kopernikus18jma8ppw3nhx5r4ap8clazz0dps7rv5uuvjh68"},
+				multisigTx: &model.MultisigTx{
+					Id:           "bc6246f58b5aba675f4071bd1a13d7a774384e42f301208d1c2b0f22ee602e69",
+					UnsignedTx:   "000000002004000003ea010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+					Alias:        "P-kopernikus1k4przmfu79ypp4u7y98glmdpzwk0u3sc7saazy",
+					Threshold:    2,
+					ChainId:      "11111111111111111111111111111111LpoYY",
+					OutputOwners: "OutputOwners",
+					Metadata:     "metadata",
+					Owners: []model.MultisigTxOwner{
+						{
+							Address:   "P-kopernikus18jma8ppw3nhx5r4ap8clazz0dps7rv5uuvjh68",
+							Signature: "4d974561be4675853e0bc6062eac412228e94b16c6ba86dcfedccc1ef2b2a5156ab5aaddbd11f9d88786563fe9f3c17ca5e44a9936621b027b3179284dd86dc000",
+						},
+						{
+							Address:   "P-kopernikus1g65uqn6t77p656w64023nh8nd9updzmxh8ttv3",
+							Signature: "4d974561be4675853e0bc6062eac412228e94b16c6ba86dcfedccc1ef2b2a5156ab5aaddbd11f9d88786563fe9f3c17ca5e44a9936621b027b3179284dd86dc000",
+						},
+					},
+				},
 			},
 			want:    "",
 			wantErr: true,
@@ -170,7 +179,7 @@ func TestCreateMultisigTx(t *testing.T) {
 			d := &multisigTxDao{
 				db: tt.fields.db,
 			}
-			got, err := d.CreateMultisigTx(tt.args.id, tt.args.alias, tt.args.threshold, tt.args.chainId, tt.args.unsignedTx, tt.args.creator, tt.args.signature, tt.args.outputOwners, tt.args.metadata, tt.args.owners, &tt.args.expiration)
+			got, err := d.CreateMultisigTx(tt.args.multisigTx)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CreateMultisigTx() error = %v, wantErr %v", err, tt.wantErr)
 				return

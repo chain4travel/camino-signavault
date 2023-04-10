@@ -6,7 +6,6 @@ package dao
 
 import (
 	reflect "reflect"
-	time "time"
 
 	model "github.com/chain4travel/camino-signavault/model"
 	gomock "github.com/golang/mock/gomock"
@@ -51,18 +50,18 @@ func (mr *MockMultisigTxDaoMockRecorder) AddSigner(arg0, arg1, arg2 interface{})
 }
 
 // CreateMultisigTx mocks base method.
-func (m *MockMultisigTxDao) CreateMultisigTx(arg0, arg1 string, arg2 int, arg3, arg4, arg5, arg6, arg7, arg8 string, arg9 []string, arg10 *time.Time) (string, error) {
+func (m *MockMultisigTxDao) CreateMultisigTx(arg0 *model.MultisigTx) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateMultisigTx", arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10)
+	ret := m.ctrl.Call(m, "CreateMultisigTx", arg0)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateMultisigTx indicates an expected call of CreateMultisigTx.
-func (mr *MockMultisigTxDaoMockRecorder) CreateMultisigTx(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10 interface{}) *gomock.Call {
+func (mr *MockMultisigTxDaoMockRecorder) CreateMultisigTx(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateMultisigTx", reflect.TypeOf((*MockMultisigTxDao)(nil).CreateMultisigTx), arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateMultisigTx", reflect.TypeOf((*MockMultisigTxDao)(nil).CreateMultisigTx), arg0)
 }
 
 // GetMultisigTx mocks base method.

@@ -6,13 +6,14 @@
 package dto
 
 type MultisigTxArgs struct {
-	Alias        string `json:"alias" binding:"required"`
-	UnsignedTx   string `json:"unsignedTx" binding:"required"`
-	Signature    string `json:"signature" binding:"required"`
-	OutputOwners string `json:"outputOwners" binding:"required"`
-	Metadata     string `json:"metadata"`
-	Expiration   int64  `json:"expiration"`
-	ChainId      string `json:"chainId" binding:"required"`
+	Alias             string `json:"alias" binding:"required"`
+	UnsignedTx        string `json:"unsignedTx" binding:"required"`
+	Signature         string `json:"signature" binding:"required"`
+	OutputOwners      string `json:"outputOwners" binding:"required"`
+	Metadata          string `json:"metadata"`
+	Expiration        int64  `json:"expiration"`
+	ChainId           string `json:"chainId" binding:"required"`
+	ParentTransaction string `json:"parentTransaction"`
 }
 
 type SignTxArgs struct {

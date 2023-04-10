@@ -15,7 +15,6 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
-	"strconv"
 	"testing"
 	"time"
 )
@@ -45,7 +44,7 @@ func TestCreateMultisigTx(t *testing.T) {
 		Id: 1,
 	}
 
-	now := time.Now().UTC().Add(time.Hour * 24 * 14)
+	now := time.Now().UTC().Round(time.Second).Add(time.Hour * 24 * 14)
 	mockTx := model.MultisigTx{
 		Id:            id,
 		UnsignedTx:    unsignedTx,
@@ -70,9 +69,7 @@ func TestCreateMultisigTx(t *testing.T) {
 		},
 	}
 
-	thresholdInt, _ := strconv.Atoi(mockAliasInfo.Result.Threshold)
-	//mockTx.Expiration.Round(time.Second)
-	mockDao.EXPECT().CreateMultisigTx(mockTx.Id, mockTx.Alias, thresholdInt, mockTx.ChainId, mockTx.UnsignedTx, mockTx.Owners[0].Address, mockTx.Owners[0].Signature, mockTx.OutputOwners, mockTx.Metadata, mockAliasInfo.Result.Addresses, gomock.Any()).Return(mockTx.Id, nil)
+	mockDao.EXPECT().CreateMultisigTx(&mockTx).Return(mockTx.Id, nil)
 	mockDao.EXPECT().GetMultisigTx(mockTx.Id, "", "").Return(&[]model.MultisigTx{mockTx}, nil).AnyTimes()
 	mockDao.EXPECT().PendingAliasExists("P-kopernikus1fq0jc8svlyazhygkj0s36qnl6s0km0h3uuc99e", "11111111111111111111111111111111LpoYY").Return(true, nil)
 	mockDao.EXPECT().PendingAliasExists(gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
