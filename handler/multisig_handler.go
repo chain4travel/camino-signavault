@@ -19,6 +19,7 @@ type MultisigHandler interface {
 	GetAllMultisigTxForAlias(ctx *gin.Context)
 	SignMultisigTx(ctx *gin.Context)
 	IssueMultisigTx(ctx *gin.Context)
+	CancelMultisigTx(ctx *gin.Context)
 }
 
 type multisigHandler struct {
@@ -175,6 +176,43 @@ func (h *multisigHandler) IssueMultisigTx(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, &dto.IssueTxResponse{TxID: txID.String()})
+}
+
+// CancelMultisigTx Cancels a multisig transaction by setting the expiration to the current time.
+// @Summary Cancel a multisig transaction by setting the expiration to the current time
+// @Tags Multisig
+// @Accept json
+// @Produce json
+// @Param id path string true "Multisig transaction ID"
+// @Param cancelTxArgs body dto.CancelTxArgs true "CancelTxArgs object that contains the parameters for the multisig transaction to be canceled"
+// @Success 204
+// @Failure 400 {object} dto.SignavaultError
+// @ID CancelMultisigTx
+// @Router /multisig/cancel/{id} [post]
+func (h *multisigHandler) CancelMultisigTx(ctx *gin.Context) {
+	id := ctx.Param("id")
+
+	var cancelTxArgs *dto.CancelTxArgs
+	err := ctx.BindJSON(&cancelTxArgs)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest,
+			&dto.SignavaultError{
+				Message: "Error parsing JSON for canceling multisig transaction",
+				Error:   err.Error(),
+			})
+		return
+	}
+
+	err = h.multisigService.CancelMultisigTx(id, cancelTxArgs)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest,
+			&dto.SignavaultError{
+				Message: "Error canceling multisig transaction",
+				Error:   err.Error(),
+			})
+		return
+	}
+	ctx.Status(http.StatusNoContent)
 }
 
 func (h *multisigHandler) throwMissingQueryParamError(ctx *gin.Context, param string) {

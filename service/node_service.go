@@ -16,7 +16,6 @@ import (
 	"strings"
 
 	"github.com/ava-labs/avalanchego/ids"
-
 	"github.com/ava-labs/avalanchego/vms/platformvm"
 
 	"github.com/chain4travel/camino-signavault/model"

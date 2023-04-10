@@ -36,6 +36,20 @@ func (m *MockMultisigService) EXPECT() *MockMultisigServiceMockRecorder {
 	return m.recorder
 }
 
+// CancelMultisigTx mocks base method.
+func (m *MockMultisigService) CancelMultisigTx(arg0 string, arg1 *dto.CancelTxArgs) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CancelMultisigTx", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CancelMultisigTx indicates an expected call of CancelMultisigTx.
+func (mr *MockMultisigServiceMockRecorder) CancelMultisigTx(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelMultisigTx", reflect.TypeOf((*MockMultisigService)(nil).CancelMultisigTx), arg0, arg1)
+}
+
 // CreateMultisigTx mocks base method.
 func (m *MockMultisigService) CreateMultisigTx(arg0 *dto.MultisigTxArgs) (*model.MultisigTx, error) {
 	m.ctrl.T.Helper()
