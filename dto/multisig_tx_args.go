@@ -25,5 +25,5 @@ type IssueTxArgs struct {
 }
 
 type IssueTxResponse struct {
-	TxID string `json:"txID"`
+	TxID string `json:"txID" binding:"required"`
 }

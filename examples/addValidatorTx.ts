@@ -144,7 +144,8 @@ const sendRegisterNodeTx = async (): Promise<any> => {
             signature: signatures[0][1],
             outputOwners: outputOwnersHex,
             // we send node's signature as metadata so it can be used form the issuer
-            metadata: signatures[2][1]
+            metadata: signatures[2][1],
+            chainId: PChainAlias
         })
     } catch (e) {
         console.log(e.response.data)
@@ -353,7 +354,8 @@ const sendAddValidatorTx = async (): Promise<any> => {
             outputOwners: outputOwnersHex,
             // we send node's signature as metadata so it can be used form the issuer
             metadata: signatures[2][1],
-            expiration: Math.floor(startDate)
+            expiration: Math.floor(startDate),
+            chainId: PChainAlias,
         })
     } catch (e) {
         console.log(e.response.data)
