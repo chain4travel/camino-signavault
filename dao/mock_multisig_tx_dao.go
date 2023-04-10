@@ -6,6 +6,7 @@ package dao
 
 import (
 	reflect "reflect"
+	time "time"
 
 	model "github.com/chain4travel/camino-signavault/model"
 	gomock "github.com/golang/mock/gomock"
@@ -92,6 +93,21 @@ func (m *MockMultisigTxDao) PendingAliasExists(arg0, arg1 string) (bool, error) 
 func (mr *MockMultisigTxDaoMockRecorder) PendingAliasExists(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PendingAliasExists", reflect.TypeOf((*MockMultisigTxDao)(nil).PendingAliasExists), arg0, arg1)
+}
+
+// UpdateExpirationDate mocks base method.
+func (m *MockMultisigTxDao) UpdateExpirationDate(arg0 string, arg1 time.Time) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateExpirationDate", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateExpirationDate indicates an expected call of UpdateExpirationDate.
+func (mr *MockMultisigTxDaoMockRecorder) UpdateExpirationDate(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateExpirationDate", reflect.TypeOf((*MockMultisigTxDao)(nil).UpdateExpirationDate), arg0, arg1)
 }
 
 // UpdateTransactionId mocks base method.

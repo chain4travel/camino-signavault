@@ -6,10 +6,11 @@
 package main
 
 import (
+	"log"
+
 	"github.com/chain4travel/camino-signavault/dao"
 	"github.com/chain4travel/camino-signavault/db"
 	"github.com/chain4travel/camino-signavault/service"
-	"log"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -49,6 +50,7 @@ func startRouter(cfg *util.Config) {
 
 	api.POST("/multisig", h.CreateMultisigTx)
 	api.POST("/multisig/issue", h.IssueMultisigTx)
+	api.POST("/multisig/cancel", h.CancelMultisigTx)
 	api.PUT("/multisig/:id", h.SignMultisigTx)
 	api.GET("/multisig/:alias", h.GetAllMultisigTxForAlias)
 
