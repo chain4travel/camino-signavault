@@ -81,18 +81,18 @@ func (mr *MockMultisigTxDaoMockRecorder) GetMultisigTx(arg0, arg1, arg2 interfac
 }
 
 // PendingAliasExists mocks base method.
-func (m *MockMultisigTxDao) PendingAliasExists(arg0 string) (bool, error) {
+func (m *MockMultisigTxDao) PendingAliasExists(arg0, arg1 string) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PendingAliasExists", arg0)
+	ret := m.ctrl.Call(m, "PendingAliasExists", arg0, arg1)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // PendingAliasExists indicates an expected call of PendingAliasExists.
-func (mr *MockMultisigTxDaoMockRecorder) PendingAliasExists(arg0 interface{}) *gomock.Call {
+func (mr *MockMultisigTxDaoMockRecorder) PendingAliasExists(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PendingAliasExists", reflect.TypeOf((*MockMultisigTxDao)(nil).PendingAliasExists), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PendingAliasExists", reflect.TypeOf((*MockMultisigTxDao)(nil).PendingAliasExists), arg0, arg1)
 }
 
 // UpdateTransactionId mocks base method.

@@ -79,8 +79,9 @@ func (s *multisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 	var err error
 
 	alias := multisigTxArgs.Alias
+	chainId := multisigTxArgs.ChainId
 
-	exists, err := s.dao.PendingAliasExists(alias)
+	exists, err := s.dao.PendingAliasExists(alias, chainId)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +128,6 @@ func (s *multisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 		return nil, ErrThresholdParsing
 	}
 	owners := aliasInfo.Result.Addresses
-	chainId := multisigTxArgs.ChainId
 
 	if !s.isCreatorOwner(owners, creator) {
 		return nil, ErrAddressNotOwner
