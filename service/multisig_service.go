@@ -138,7 +138,35 @@ func (s *multisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 		return nil, err
 	}
 
-	_, err = s.dao.CreateMultisigTx(id, alias, threshold, chainId, unsignedTx, creator, signature, outputOwners, metadata, owners, expiresAt)
+	multisigTxOwners := make([]model.MultisigTxOwner, 0)
+	for _, owner := range owners {
+		ownerSignature := ""
+		if owner == creator {
+			ownerSignature = signature
+		}
+		multisigTxOwner := model.MultisigTxOwner{
+			MultisigTxId: id,
+			Address:      owner,
+			Signature:    ownerSignature,
+		}
+		multisigTxOwners = append(multisigTxOwners, multisigTxOwner)
+	}
+	parentTransaction := multisigTxArgs.ParentTransaction
+
+	multisigTx := model.MultisigTx{
+		Id:                id,
+		Alias:             alias,
+		Threshold:         int8(threshold),
+		ChainId:           chainId,
+		UnsignedTx:        unsignedTx,
+		OutputOwners:      outputOwners,
+		Metadata:          metadata,
+		Expiration:        expiresAt,
+		Owners:            multisigTxOwners,
+		ParentTransaction: parentTransaction,
+	}
+	_, err = s.dao.CreateMultisigTx(&multisigTx)
+
 	if err != nil {
 		return nil, err
 	}
