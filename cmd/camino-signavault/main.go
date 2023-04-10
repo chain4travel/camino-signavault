@@ -50,7 +50,7 @@ func startRouter(cfg *util.Config) {
 
 	api.POST("/multisig", h.CreateMultisigTx)
 	api.POST("/multisig/issue", h.IssueMultisigTx)
-	api.POST("/multisig/cancel/:id", h.CancelMultisigTx)
+	api.POST("/multisig/cancel", h.CancelMultisigTx)
 	api.PUT("/multisig/:id", h.SignMultisigTx)
 	api.GET("/multisig/:alias", h.GetAllMultisigTxForAlias)
 

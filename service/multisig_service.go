@@ -55,7 +55,7 @@ type MultisigService interface {
 	GetMultisigTx(id string) (*model.MultisigTx, error)
 	SignMultisigTx(id string, signer *dto.SignTxArgs) (*model.MultisigTx, error)
 	IssueMultisigTx(issueTxArgs *dto.IssueTxArgs) (ids.ID, error)
-	CancelMultisigTx(id string, cancelTxArgs *dto.CancelTxArgs) error
+	CancelMultisigTx(cancelTxArgs *dto.CancelTxArgs) error
 }
 
 type multisigService struct {
@@ -277,13 +277,13 @@ func (s *multisigService) IssueMultisigTx(sendTxArgs *dto.IssueTxArgs) (ids.ID, 
 	return txID, nil
 }
 
-func (s *multisigService) CancelMultisigTx(id string, cancelTxArgs *dto.CancelTxArgs) error {
+func (s *multisigService) CancelMultisigTx(cancelTxArgs *dto.CancelTxArgs) error {
 	owner, err := s.getAddressFromSignature(cancelTxArgs.Timestamp, cancelTxArgs.Signature, false)
 	if err != nil {
 		return ErrParsingSignature
 	}
 
-	multisigTx, err := s.GetMultisigTx(id)
+	multisigTx, err := s.GetMultisigTx(cancelTxArgs.Id)
 	if err != nil {
 		return err
 	}
@@ -293,7 +293,7 @@ func (s *multisigService) CancelMultisigTx(id string, cancelTxArgs *dto.CancelTx
 		return ErrAddressNotOwner
 	}
 
-	_, err = s.dao.UpdateExpirationDate(id, time.Now().UTC())
+	_, err = s.dao.UpdateExpirationDate(cancelTxArgs.Id, time.Now().UTC())
 	if err != nil {
 		return err
 	}

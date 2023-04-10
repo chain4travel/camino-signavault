@@ -188,10 +188,8 @@ func (h *multisigHandler) IssueMultisigTx(ctx *gin.Context) {
 // @Success 204
 // @Failure 400 {object} dto.SignavaultError
 // @ID CancelMultisigTx
-// @Router /multisig/cancel/{id} [post]
+// @Router /multisig/cancel [post]
 func (h *multisigHandler) CancelMultisigTx(ctx *gin.Context) {
-	id := ctx.Param("id")
-
 	var cancelTxArgs *dto.CancelTxArgs
 	err := ctx.BindJSON(&cancelTxArgs)
 	if err != nil {
@@ -203,7 +201,7 @@ func (h *multisigHandler) CancelMultisigTx(ctx *gin.Context) {
 		return
 	}
 
-	err = h.multisigService.CancelMultisigTx(id, cancelTxArgs)
+	err = h.multisigService.CancelMultisigTx(cancelTxArgs)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest,
 			&dto.SignavaultError{
