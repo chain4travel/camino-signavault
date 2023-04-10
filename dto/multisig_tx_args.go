@@ -28,3 +28,9 @@ type IssueTxArgs struct {
 type IssueTxResponse struct {
 	TxID string `json:"txID" binding:"required"`
 }
+
+type CancelTxArgs struct {
+	Id        string `json:"id" binding:"required"`
+	Timestamp string `json:"timestamp" binding:"required"`
+	Signature string `json:"signature" binding:"required"`
+}

@@ -7,16 +7,18 @@ package dao
 
 import (
 	"database/sql"
-	"github.com/chain4travel/camino-signavault/db"
-	"github.com/chain4travel/camino-signavault/model"
 	"log"
 	"time"
+
+	"github.com/chain4travel/camino-signavault/db"
+	"github.com/chain4travel/camino-signavault/model"
 )
 
 type MultisigTxDao interface {
 	CreateMultisigTx(multisig *model.MultisigTx) (string, error)
 	GetMultisigTx(id string, alias string, owner string) (*[]model.MultisigTx, error)
 	UpdateTransactionId(id string, transactionId string) (bool, error)
+	UpdateExpirationDate(id string, expirationDate time.Time) (bool, error)
 	AddSigner(id string, signature string, signerAddress string) (bool, error)
 	PendingAliasExists(alias string, chainId string) (bool, error)
 }
@@ -264,6 +266,34 @@ func (d *multisigTxDao) UpdateTransactionId(id string, transactionId string) (bo
 		return false, err
 	}
 	_, err = stmt.Exec(transactionId, id)
+	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			log.Printf("Execute statement failed: %v, unable to rollback: %v", err, rollbackErr)
+		}
+		log.Print(err)
+		return false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		log.Printf("Commit failed: %v", err)
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (d *multisigTxDao) UpdateExpirationDate(id string, expirationDate time.Time) (bool, error) {
+	tx, err := d.db.Begin()
+	if err != nil {
+		return false, err
+	}
+
+	stmt, err := tx.Prepare("UPDATE multisig_tx SET expires_at = ? WHERE id = ? AND transaction_id IS NULL")
+	if err != nil {
+		return false, err
+	}
+	_, err = stmt.Exec(expirationDate, id)
 	if err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			log.Printf("Execute statement failed: %v, unable to rollback: %v", err, rollbackErr)
