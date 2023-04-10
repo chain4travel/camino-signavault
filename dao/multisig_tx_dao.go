@@ -14,7 +14,7 @@ import (
 )
 
 type MultisigTxDao interface {
-	CreateMultisigTx(id string, alias string, threshold int, chainId string, unsignedTx string, creator string, signature string, outputOwners string, metadata string, owners []string, expiresAt *time.Time) (string, error)
+	CreateMultisigTx(multisig *model.MultisigTx) (string, error)
 	GetMultisigTx(id string, alias string, owner string) (*[]model.MultisigTx, error)
 	UpdateTransactionId(id string, transactionId string) (bool, error)
 	AddSigner(id string, signature string, signerAddress string) (bool, error)
@@ -54,20 +54,18 @@ func (d *multisigTxDao) PendingAliasExists(alias string, chainId string) (bool, 
 	return count > 0, nil
 }
 
-func (d *multisigTxDao) CreateMultisigTx(id string, alias string, threshold int, chainId string, unsignedTx string, creator string,
-	signature string, outputOwners string, metadata string, owners []string, expiresAt *time.Time) (string, error) {
-
+func (d *multisigTxDao) CreateMultisigTx(multisig *model.MultisigTx) (string, error) {
 	tx, err := d.db.Begin()
 	if err != nil {
 		return "", err
 	}
 
-	stmt, err := tx.Prepare("INSERT INTO multisig_tx (id, alias, threshold, chain_id, unsigned_tx, output_owners, metadata, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	stmt, err := tx.Prepare("INSERT INTO multisig_tx (id, alias, threshold, chain_id, unsigned_tx, output_owners, metadata, parent_transaction, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		return "", err
 	}
 	now := time.Now().UTC()
-	_, err = stmt.Exec(id, alias, threshold, chainId, unsignedTx, outputOwners, metadata, expiresAt, now)
+	_, err = stmt.Exec(multisig.Id, multisig.Alias, multisig.Threshold, multisig.ChainId, multisig.UnsignedTx, multisig.OutputOwners, multisig.Metadata, multisig.ParentTransaction, multisig.Expiration, now)
 	if err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			log.Printf("Execute statement failed: %v, unable to rollback: %v", err, rollbackErr)
@@ -76,19 +74,13 @@ func (d *multisigTxDao) CreateMultisigTx(id string, alias string, threshold int,
 		return "", err
 	}
 
+	owners := multisig.Owners
 	for _, owner := range owners {
-		isSigner := false
-		ownerSignature := ""
-		if owner == creator {
-			isSigner = true
-			ownerSignature = signature
-		}
-
 		stmt, err := tx.Prepare("INSERT INTO multisig_tx_owners (multisig_tx_id, address, signature, is_signer, created_at) VALUES (?, ?, ?, ?, ?)")
 		if err != nil {
 			return "", err
 		}
-		_, err = stmt.Exec(id, owner, ownerSignature, isSigner, now)
+		_, err = stmt.Exec(multisig.Id, owner.Address, owner.Signature, owner.Signature != "", now)
 		if err != nil {
 			if rollbackErr := tx.Rollback(); rollbackErr != nil {
 				log.Printf("Execute statement failed: %v, unable to rollback: %v", err, rollbackErr)
@@ -104,7 +96,7 @@ func (d *multisigTxDao) CreateMultisigTx(id string, alias string, threshold int,
 		return "", err
 	}
 
-	return id, nil
+	return multisig.Id, nil
 }
 
 func (d *multisigTxDao) GetMultisigTx(id string, alias string, owner string) (*[]model.MultisigTx, error) {
@@ -121,6 +113,7 @@ func (d *multisigTxDao) GetMultisigTx(id string, alias string, owner string) (*[
 			"tx.unsigned_tx, " +
 			"tx.output_owners," +
 			"tx.metadata," +
+			"tx.parent_transaction," +
 			"tx.expires_at," +
 			"tx.created_at," +
 			"owners.multisig_tx_id, " +
@@ -141,6 +134,7 @@ func (d *multisigTxDao) GetMultisigTx(id string, alias string, owner string) (*[
 			"tx.unsigned_tx, " +
 			"tx.output_owners," +
 			"tx.metadata," +
+			"tx.parent_transaction," +
 			"tx.expires_at," +
 			"tx.created_at," +
 			"owners.multisig_tx_id, " +
@@ -179,6 +173,7 @@ func (d *multisigTxDao) GetMultisigTx(id string, alias string, owner string) (*[
 			txChainId         string
 			txOutputOwners    string
 			txMetadata        string
+			txParentTx        sql.NullString
 			txExpiresAt       sql.NullTime
 			txCreatedAt       time.Time
 			ownerMultisigTxId string
@@ -190,9 +185,11 @@ func (d *multisigTxDao) GetMultisigTx(id string, alias string, owner string) (*[
 
 		var err error
 		if owner == "" {
-			err = rows.Scan(&txId, &txAlias, &txThreshold, &txChainId, &txTransactionId, &txUnsignedTx, &txOutputOwners, &txMetadata, &txExpiresAt, &txCreatedAt, &ownerMultisigTxId, &ownerAddress, &ownerSignature, &ownerIsSigner)
+			err = rows.Scan(&txId, &txAlias, &txThreshold, &txChainId, &txTransactionId, &txUnsignedTx, &txOutputOwners,
+				&txMetadata, &txParentTx, &txExpiresAt, &txCreatedAt, &ownerMultisigTxId, &ownerAddress, &ownerSignature, &ownerIsSigner)
 		} else {
-			err = rows.Scan(&txId, &txAlias, &txThreshold, &txChainId, &txTransactionId, &txUnsignedTx, &txOutputOwners, &txMetadata, &txExpiresAt, &txCreatedAt, &ownerMultisigTxId, &ownerAddress, &ownerSignature, &ownerIsSigner, &ownerAddress2)
+			err = rows.Scan(&txId, &txAlias, &txThreshold, &txChainId, &txTransactionId, &txUnsignedTx, &txOutputOwners,
+				&txMetadata, &txParentTx, &txExpiresAt, &txCreatedAt, &ownerMultisigTxId, &ownerAddress, &ownerSignature, &ownerIsSigner, &ownerAddress2)
 		}
 		if err != nil {
 			log.Fatal(err)
@@ -212,16 +209,17 @@ func (d *multisigTxDao) GetMultisigTx(id string, alias string, owner string) (*[
 			created := &t
 
 			tx = model.MultisigTx{
-				Id:            txId,
-				UnsignedTx:    txUnsignedTx,
-				Alias:         txAlias,
-				Threshold:     txThreshold,
-				ChainId:       txChainId,
-				TransactionId: txTransactionId.String,
-				OutputOwners:  txOutputOwners,
-				Metadata:      txMetadata,
-				Expiration:    expiration,
-				Timestamp:     created,
+				Id:                txId,
+				UnsignedTx:        txUnsignedTx,
+				Alias:             txAlias,
+				Threshold:         txThreshold,
+				ChainId:           txChainId,
+				TransactionId:     txTransactionId.String,
+				OutputOwners:      txOutputOwners,
+				Metadata:          txMetadata,
+				ParentTransaction: txParentTx.String,
+				Expiration:        expiration,
+				Timestamp:         created,
 			}
 		}
 
