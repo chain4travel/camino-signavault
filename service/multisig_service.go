@@ -37,6 +37,7 @@ var (
 	ErrParsingTx        = errors.New("error parsing signed tx")
 	ErrPendingTx        = errors.New("there is already a pending tx for this alias")
 	ErrExpired          = errors.New("expiration date has passed")
+	ErrParsingChainId   = errors.New("error parsing chain id")
 )
 
 const (
@@ -80,7 +81,8 @@ func (s *multisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 	var err error
 
 	alias := multisigTxArgs.Alias
-	chainId := multisigTxArgs.ChainId
+	unsignedTx := multisigTxArgs.UnsignedTx
+	chainId, _ := s.getChainId(unsignedTx)
 
 	exists, err := s.dao.PendingAliasExists(alias, chainId)
 	if err != nil {
@@ -115,10 +117,9 @@ func (s *multisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 		return nil, ErrExpired
 	}
 
-	signature := multisigTxArgs.Signature
-	unsignedTx := multisigTxArgs.UnsignedTx
 	outputOwners := multisigTxArgs.OutputOwners
 	metadata := multisigTxArgs.Metadata
+	signature := multisigTxArgs.Signature
 	creator, err := s.getAddressFromSignature(unsignedTx, signature, true)
 	if err != nil {
 		return nil, ErrParsingSignature
@@ -236,7 +237,8 @@ func (s *multisigService) SignMultisigTx(id string, signer *dto.SignTxArgs) (*mo
 }
 
 func (s *multisigService) IssueMultisigTx(sendTxArgs *dto.IssueTxArgs) (ids.ID, error) {
-	tx, err := s.unmarshalTx(sendTxArgs.SignedTx)
+	var tx txs.Tx
+	err := s.unmarshalTx(sendTxArgs.SignedTx, &tx)
 	if err != nil {
 		return ids.Empty, err
 	}
@@ -354,19 +356,31 @@ func (s *multisigService) getAddressFromSignature(signatureArgs string, signatur
 	return "P-" + bech32Address, nil
 }
 
-func (s *multisigService) unmarshalTx(txHexString string) (txs.Tx, error) {
-	var tx txs.Tx
+func (s *multisigService) unmarshalTx(txHexString string, tx interface{}) error {
 	txBytes := common.FromHex(txHexString)
 
-	_, err := txs.Codec.Unmarshal(txBytes, &tx)
+	_, err := txs.Codec.Unmarshal(txBytes, tx)
 	if err != nil {
-		return tx, err
+		return err
 	}
 
-	return tx, nil
+	return nil
 }
 
 func (s *multisigService) generateId(unsignedTx string) (string, error) {
 	txBytes := common.FromHex(unsignedTx)
 	return fmt.Sprintf("%x", hashing.ComputeHash256(txBytes)), nil
+}
+
+func (s *multisigService) getChainId(txHexString string) (string, error) {
+	var unsignedTx txs.UnsignedTx
+	err := s.unmarshalTx(txHexString, &unsignedTx)
+	if err != nil {
+		return "", ErrParsingChainId
+	}
+	var baseTx = txs.BaseTx{}
+	baseTx.Initialize(unsignedTx.Bytes())
+	blockchainID := baseTx.BlockchainID
+
+	return blockchainID.String(), nil
 }
