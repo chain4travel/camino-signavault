@@ -94,12 +94,6 @@ export interface DtoMultisigTxArgs {
     'alias': string;
     /**
      * 
-     * @type {string}
-     * @memberof DtoMultisigTxArgs
-     */
-    'chainId': string;
-    /**
-     * 
      * @type {number}
      * @memberof DtoMultisigTxArgs
      */
