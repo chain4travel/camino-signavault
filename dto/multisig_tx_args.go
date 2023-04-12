@@ -12,7 +12,6 @@ type MultisigTxArgs struct {
 	OutputOwners      string `json:"outputOwners" binding:"required"`
 	Metadata          string `json:"metadata"`
 	Expiration        int64  `json:"expiration"`
-	ChainId           string `json:"chainId" binding:"required"`
 	ParentTransaction string `json:"parentTransaction"`
 }
 
