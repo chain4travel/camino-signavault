@@ -8,13 +8,6 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/ava-labs/avalanchego/ids"
-	"github.com/chain4travel/camino-signavault/dto"
-	"github.com/chain4travel/camino-signavault/model"
-	"github.com/chain4travel/camino-signavault/service"
-	"github.com/gin-gonic/gin"
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -22,6 +15,14 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/ava-labs/avalanchego/ids"
+	"github.com/chain4travel/camino-signavault/dto"
+	"github.com/chain4travel/camino-signavault/model"
+	"github.com/chain4travel/camino-signavault/service"
+	"github.com/gin-gonic/gin"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateMultisigTx(t *testing.T) {
@@ -199,7 +200,7 @@ func TestGetAllMultisigTxForAlias(t *testing.T) {
 				Method: "GET",
 				URL:    urlQuery,
 				Header: make(http.Header),
-				//Body:   io.NopCloser(bytes.NewBuffer([]byte(tt.args.Alias))),
+				// Body:   io.NopCloser(bytes.NewBuffer([]byte(tt.args.Alias))),
 			}
 			req.Header.Add("Accept", "application/json")
 			c.Request = req
@@ -284,13 +285,11 @@ func TestIssueMultisigTx(t *testing.T) {
 				// check if the error message is in the response
 				assert.Contains(t, w.Body.String(), tt.wantBody)
 			}
-
 		})
 	}
 }
 
 func TestSignMultisigTx(t *testing.T) {
-
 	ctrl := gomock.NewController(t)
 	mockMultisigService := service.NewMockMultisigService(ctrl)
 	h := NewMultisigHandler(mockMultisigService)
@@ -345,7 +344,6 @@ func TestSignMultisigTx(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
 
@@ -377,7 +375,6 @@ func TestSignMultisigTx(t *testing.T) {
 }
 
 func TestNewMultisigHandler(t *testing.T) {
-
 	type args struct {
 		multisigService service.MultisigService
 	}
