@@ -1,0 +1,22 @@
+# create a workflow that will build and test the golang project
+# on every push on all branches
+name: build and test
+on:
+  [push, pull_request]
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+        - name: checkout
+          uses: actions/checkout@v3
+        - name: setup go
+          uses: actions/setup-go@v4
+          with:
+            go-version: 1.18
+        - name: init submodules
+          run: git submodule update --init --recursive
+        - name: build
+          run: go build ./...
+        - name: test
+          run: go test ./...
+
