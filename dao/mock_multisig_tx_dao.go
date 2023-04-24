@@ -65,6 +65,21 @@ func (mr *MockMultisigTxDaoMockRecorder) CreateMultisigTx(arg0 interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateMultisigTx", reflect.TypeOf((*MockMultisigTxDao)(nil).CreateMultisigTx), arg0)
 }
 
+// DeletePendingTx mocks base method.
+func (m *MockMultisigTxDao) DeletePendingTx(arg0 string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeletePendingTx", arg0)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeletePendingTx indicates an expected call of DeletePendingTx.
+func (mr *MockMultisigTxDaoMockRecorder) DeletePendingTx(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeletePendingTx", reflect.TypeOf((*MockMultisigTxDao)(nil).DeletePendingTx), arg0)
+}
+
 // GetMultisigTx mocks base method.
 func (m *MockMultisigTxDao) GetMultisigTx(arg0, arg1, arg2 string) (*[]model.MultisigTx, error) {
 	m.ctrl.T.Helper()

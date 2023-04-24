@@ -295,7 +295,7 @@ func (s *multisigService) CancelMultisigTx(cancelTxArgs *dto.CancelTxArgs) error
 		return ErrAddressNotOwner
 	}
 
-	_, err = s.dao.UpdateExpirationDate(cancelTxArgs.Id, time.Now().UTC())
+	_, err = s.dao.DeletePendingTx(cancelTxArgs.Id)
 	if err != nil {
 		return err
 	}
