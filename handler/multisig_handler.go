@@ -183,7 +183,6 @@ func (h *multisigHandler) IssueMultisigTx(ctx *gin.Context) {
 // @Tags Multisig
 // @Accept json
 // @Produce json
-// @Param id path string true "Multisig transaction ID"
 // @Param cancelTxArgs body dto.CancelTxArgs true "CancelTxArgs object that contains the parameters for the multisig transaction to be canceled"
 // @Success 204
 // @Failure 400 {object} dto.SignavaultError

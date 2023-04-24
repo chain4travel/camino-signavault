@@ -512,7 +512,7 @@ func TestCancelMultisigTx(t *testing.T) {
 
 	// mock without signer
 	mockDao.EXPECT().GetMultisigTx(mockTx.Id, "", "").Return(&[]model.MultisigTx{mockTx}, nil).AnyTimes()
-	mockDao.EXPECT().UpdateExpirationDate(mockTx.Id, gomock.Any()).Return(true, nil).AnyTimes()
+	mockDao.EXPECT().DeletePendingTx(mockTx.Id).Return(true, nil).AnyTimes()
 
 	type args struct {
 		cancelArgs *dto.CancelTxArgs
