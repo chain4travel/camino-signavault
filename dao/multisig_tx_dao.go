@@ -21,6 +21,7 @@ type MultisigTxDao interface {
 	UpdateExpirationDate(id string, expirationDate time.Time) (bool, error)
 	AddSigner(id string, signature string, signerAddress string) (bool, error)
 	PendingAliasExists(alias string, chainId string) (bool, error)
+	DeletePendingTx(id string) (bool, error)
 }
 type multisigTxDao struct {
 	db *db.Db
@@ -294,6 +295,45 @@ func (d *multisigTxDao) UpdateExpirationDate(id string, expirationDate time.Time
 		return false, err
 	}
 	_, err = stmt.Exec(expirationDate, id)
+	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			log.Printf("Execute statement failed: %v, unable to rollback: %v", err, rollbackErr)
+		}
+		log.Print(err)
+		return false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		log.Printf("Commit failed: %v", err)
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (d *multisigTxDao) DeletePendingTx(id string) (bool, error) {
+	tx, err := d.db.Begin()
+	if err != nil {
+		return false, err
+	}
+
+	// delete owners first
+	stmt, err := tx.Prepare("DELETE FROM multisig_tx_owners WHERE multisig_tx_id = ?")
+	if err != nil {
+		return false, err
+	}
+	_, err = stmt.Exec(id)
+
+	if err == nil {
+		// delete tx
+		stmt, err = tx.Prepare("DELETE FROM multisig_tx WHERE id = ? AND transaction_id IS NULL")
+		if err != nil {
+			return false, err
+		}
+		_, err = stmt.Exec(id)
+	}
+
 	if err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			log.Printf("Execute statement failed: %v, unable to rollback: %v", err, rollbackErr)
