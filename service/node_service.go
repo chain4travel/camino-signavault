@@ -69,7 +69,7 @@ func (s *nodeService) GetMultisigAlias(alias string) (*model.AliasInfo, error) {
 
 	var aliasInfo *model.AliasInfo
 
-	err = s.strictUnmarshal(resBody, &aliasInfo)
+	err = s.unmarshal(resBody, &aliasInfo)
 	if err != nil {
 		return nil, errAliasInfoNotFound
 	}
@@ -81,8 +81,7 @@ func (s *nodeService) IssueTx(txBytes []byte) (ids.ID, error) {
 	return s.client.IssueTx(context.Background(), txBytes)
 }
 
-func (s *nodeService) strictUnmarshal(data []byte, v interface{}) error {
+func (s *nodeService) unmarshal(data []byte, v interface{}) error {
 	dec := json.NewDecoder(bytes.NewReader(data))
-	dec.DisallowUnknownFields()
 	return dec.Decode(v)
 }
