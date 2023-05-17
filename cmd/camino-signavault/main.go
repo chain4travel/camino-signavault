@@ -6,6 +6,7 @@
 package main
 
 import (
+	"github.com/chain4travel/camino-signavault/util"
 	"log"
 
 	"github.com/chain4travel/camino-signavault/dao"
@@ -16,7 +17,6 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/chain4travel/camino-signavault/handler"
-	"github.com/chain4travel/camino-signavault/util"
 )
 
 // Command to generate swagger docs (root dir)

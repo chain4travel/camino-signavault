@@ -175,7 +175,7 @@ func (h *multisigHandler) IssueMultisigTx(ctx *gin.Context) {
 			})
 		return
 	}
-	ctx.JSON(http.StatusOK, &dto.IssueTxResponse{TxID: txID.String()})
+	ctx.JSON(http.StatusOK, &dto.IssueTxResponse{TxID: txID})
 }
 
 // CancelMultisigTx Cancels a multisig transaction by setting the expiration to the current time.

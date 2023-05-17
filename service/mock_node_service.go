@@ -7,7 +7,6 @@ package service
 import (
 	reflect "reflect"
 
-	ids "github.com/ava-labs/avalanchego/ids"
 	model "github.com/chain4travel/camino-signavault/model"
 	gomock "github.com/golang/mock/gomock"
 )
@@ -51,10 +50,10 @@ func (mr *MockNodeServiceMockRecorder) GetMultisigAlias(arg0 interface{}) *gomoc
 }
 
 // IssueTx mocks base method.
-func (m *MockNodeService) IssueTx(arg0 []byte) (ids.ID, error) {
+func (m *MockNodeService) IssueTx(arg0 []byte) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IssueTx", arg0)
-	ret0, _ := ret[0].(ids.ID)
+	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

@@ -6,11 +6,10 @@
 package service
 
 import (
-	"github.com/ava-labs/avalanchego/ids"
 	"github.com/chain4travel/camino-signavault/dao"
 	"github.com/chain4travel/camino-signavault/dto"
 	"github.com/chain4travel/camino-signavault/model"
-	"github.com/chain4travel/camino-signavault/util"
+	"github.com/chain4travel/camino-signavault/utils"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -28,7 +27,7 @@ func TestCreateMultisigTx(t *testing.T) {
 	mockNodeService := NewMockNodeService(ctrl)
 	mockDao := dao.NewMockMultisigTxDao(ctrl)
 
-	mockConfig := &util.Config{
+	mockConfig := &utils.Config{
 		NetworkId: networkId,
 	}
 
@@ -145,7 +144,7 @@ func TestGetAllMultisigTxForAlias(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockNodeService := NewMockNodeService(ctrl)
 	mockDao := dao.NewMockMultisigTxDao(ctrl)
-	mockConfig := &util.Config{
+	mockConfig := &utils.Config{
 		NetworkId: networkId,
 	}
 
@@ -226,7 +225,7 @@ func TestGetMultisigTx(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockNodeService := NewMockNodeService(ctrl)
 	mockDao := dao.NewMockMultisigTxDao(ctrl)
-	mockConfig := &util.Config{
+	mockConfig := &utils.Config{
 		NetworkId: networkId,
 	}
 
@@ -300,7 +299,7 @@ func TestSignMultisigTx(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockNodeService := NewMockNodeService(ctrl)
 	mockDao := dao.NewMockMultisigTxDao(ctrl)
-	mockConfig := &util.Config{
+	mockConfig := &utils.Config{
 		NetworkId: networkId,
 	}
 
@@ -404,7 +403,7 @@ func TestIssueMultisigTx(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockNodeService := NewMockNodeService(ctrl)
 	mockDao := dao.NewMockMultisigTxDao(ctrl)
-	mockConfig := &util.Config{
+	mockConfig := &utils.Config{
 		NetworkId: networkId,
 	}
 
@@ -431,7 +430,7 @@ func TestIssueMultisigTx(t *testing.T) {
 	// mock without signer
 	mockDao.EXPECT().GetMultisigTx(mockTx.Id, "", "").Return(&[]model.MultisigTx{mockTx}, nil).AnyTimes()
 	mockDao.EXPECT().UpdateTransactionId(mockTx.Id, gomock.Any()).Return(true, nil).AnyTimes()
-	txId, _ := ids.FromString("3N3j8FpRtvx9UAJrsS6CTcsUQPCmRqf4Hjnfp81CuEJSMcqJ2")
+	txId := "3N3j8FpRtvx9UAJrsS6CTcsUQPCmRqf4Hjnfp81CuEJSMcqJ2"
 	mockNodeService.EXPECT().IssueTx(gomock.Any()).Return(txId, nil).AnyTimes()
 
 	type args struct {
@@ -440,7 +439,7 @@ func TestIssueMultisigTx(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    ids.ID
+		want    string
 		wantErr bool
 	}{
 		{
@@ -462,7 +461,7 @@ func TestIssueMultisigTx(t *testing.T) {
 					Signature: "9b0d10e2b321b54edac30aae019bc0ceb639d3c1f312cd65d8dbafe735e14ccc39b11974f4efd29c11a9dccc140878ba689294a1c91d5d569a44b9665a0031fb02",
 				},
 			},
-			want:    ids.Empty,
+			want:    "",
 			wantErr: true,
 		},
 	}
@@ -485,7 +484,7 @@ func TestCancelMultisigTx(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockNodeService := NewMockNodeService(ctrl)
 	mockDao := dao.NewMockMultisigTxDao(ctrl)
-	mockConfig := &util.Config{
+	mockConfig := &utils.Config{
 		NetworkId: networkId,
 	}
 

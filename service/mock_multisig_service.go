@@ -7,7 +7,6 @@ package service
 import (
 	reflect "reflect"
 
-	ids "github.com/ava-labs/avalanchego/ids"
 	dto "github.com/chain4travel/camino-signavault/dto"
 	model "github.com/chain4travel/camino-signavault/model"
 	gomock "github.com/golang/mock/gomock"
@@ -96,10 +95,10 @@ func (mr *MockMultisigServiceMockRecorder) GetMultisigTx(arg0 interface{}) *gomo
 }
 
 // IssueMultisigTx mocks base method.
-func (m *MockMultisigService) IssueMultisigTx(arg0 *dto.IssueTxArgs) (ids.ID, error) {
+func (m *MockMultisigService) IssueMultisigTx(arg0 *dto.IssueTxArgs) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IssueMultisigTx", arg0)
-	ret0, _ := ret[0].(ids.ID)
+	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

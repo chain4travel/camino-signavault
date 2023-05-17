@@ -6,7 +6,7 @@ import (
 	"github.com/chain4travel/camino-signavault/db"
 	"github.com/chain4travel/camino-signavault/model"
 	"github.com/chain4travel/camino-signavault/test"
-	"github.com/chain4travel/camino-signavault/util"
+	"github.com/chain4travel/camino-signavault/utils"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/stretchr/testify/assert"
 	"log"
@@ -40,7 +40,7 @@ func TestMain(m *testing.M) {
 		}
 
 		// run migration
-		path := "file://" + util.GetRootPath() + "/db/migrations"
+		path := "file://" + utils.GetRootPath() + "/db/migrations"
 		m, err := migrate.New(path, "mysql://"+mysqlContainer.URI)
 		if err != nil {
 			log.Fatal(err)
@@ -51,7 +51,7 @@ func TestMain(m *testing.M) {
 		}
 
 		// load test data
-		path = filepath.Join(util.GetRootPath(), "test", "data", "test_data.sql")
+		path = filepath.Join(utils.GetRootPath(), "test", "data", "test_data.sql")
 		c, ioErr := os.ReadFile(path)
 		if ioErr != nil {
 			log.Fatal(err)
