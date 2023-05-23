@@ -1,5 +1,5 @@
 # Signavault
-Signavault is a standalone off chain service which is responsible for collecting signatures for multisig alias transactions. It provides an API with four endpoits:
+Signavault is a standalone off chain service which is responsible for collecting signatures for multisig alias transactions. It provides an API with four endpoints:
 
  - `CreateMultisigTx`: creates a new multisig transaction.
  - `GetAllMultisigTxForAlias`: gets all the pending multisig transactions for a given alias.
@@ -25,7 +25,7 @@ To install Signavault, follow these steps:
 - Run `go run main.go`. This will start the Signavault service.
 
 # Usage
-Once Signavault is running, you can use the API endpoints to create, sign, and issue multisignature transactions. The API documentation is available at https://c4t.atlassian.net/wiki/spaces/TECH/pages/292257793/SignaVault+API.
+Once Signavault is running, you can use the API endpoints to create, sign, and issue multisignature transactions. 
 
 # Client SDK
 Signavault also provides a TypeScript client SDK that can be used in front-end apps to communicate with the Signavault API. The SDK is available in the `signavaultjs` directory and can be installed as an npm package:
