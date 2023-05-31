@@ -9,14 +9,14 @@ import (
 	"errors"
 	"fmt"
 	"github.com/chain4travel/camino-signavault/caminogo/cache"
-	"github.com/chain4travel/camino-signavault/caminogo/codec"
 	"github.com/chain4travel/camino-signavault/util"
 
-	"github.com/chain4travel/camino-signavault/caminogo/txs"
+	//"github.com/chain4travel/camino-signavault/caminogo/txs"
 	"github.com/chain4travel/camino-signavault/caminogo/utils/constants"
 	"github.com/chain4travel/camino-signavault/caminogo/utils/crypto"
 	"github.com/chain4travel/camino-signavault/caminogo/utils/formatting/address"
 	"github.com/chain4travel/camino-signavault/caminogo/utils/hashing"
+	"github.com/chain4travel/camino-signavault/caminogo/vms/platformvm/txs"
 	"log"
 	"strconv"
 	"time"
@@ -42,7 +42,8 @@ var (
 )
 
 var (
-	Codec codec.Manager
+// Codec codec.Manager = codec.NewDefaultManager()
+// Codec codec.Manager
 )
 
 const (
@@ -87,8 +88,11 @@ func (s *multisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 
 	alias := multisigTxArgs.Alias
 	unsignedTx := multisigTxArgs.UnsignedTx
-	//chainId, _ := s.getChainId(unsignedTx)
-	chainId := multisigTxArgs.ChainId
+	chainId, err := s.getChainId(unsignedTx)
+	if err != nil {
+		return nil, err
+	}
+	//chainId := multisigTxArgs.ChainId
 
 	exists, err := s.dao.PendingAliasExists(alias, chainId)
 	if err != nil {
@@ -249,7 +253,7 @@ func (s *multisigService) IssueMultisigTx(sendTxArgs *dto.IssueTxArgs) (string, 
 		return "", err
 	}
 
-	utxBytes, _ := Codec.Marshal(0, codecWrapper{tx.Unsigned})
+	utxBytes, _ := txs.Codec.Marshal(0, codecWrapper{tx.Unsigned})
 	utxHash := hashing.ComputeHash256(utxBytes)
 	utxHashStr := fmt.Sprintf("%x", utxHash)
 
@@ -268,7 +272,7 @@ func (s *multisigService) IssueMultisigTx(sendTxArgs *dto.IssueTxArgs) (string, 
 		return "", ErrAddressNotOwner
 	}
 
-	signedBytes, err := Codec.Marshal(0, tx)
+	signedBytes, err := txs.Codec.Marshal(0, tx)
 	if err != nil {
 		return "", ErrParsingTx
 	}
@@ -365,7 +369,11 @@ func (s *multisigService) getAddressFromSignature(signatureArgs string, signatur
 func (s *multisigService) unmarshalTx(txHexString string, tx interface{}) error {
 	txBytes := common.FromHex(txHexString)
 
-	_, err := Codec.Unmarshal(txBytes, tx)
+	//c := linearcodec.NewCaminoDefault()
+	//c.RegisterType(&txs.BaseTx{})
+	//Codec.RegisterCodec(0, c)
+
+	_, err := txs.Codec.Unmarshal(txBytes, tx)
 	if err != nil {
 		return err
 	}
@@ -378,15 +386,15 @@ func (s *multisigService) generateId(unsignedTx string) (string, error) {
 	return fmt.Sprintf("%x", hashing.ComputeHash256(txBytes)), nil
 }
 
-//func (s *multisigService) getChainId(txHexString string) (string, error) {
-//	var unsignedTx txs.UnsignedTx
-//	err := s.unmarshalTx(txHexString, &unsignedTx)
-//	if err != nil {
-//		return "", ErrParsingChainId
-//	}
-//	var baseTx = txs.BaseTx{}
-//	baseTx.Initialize(unsignedTx.Bytes())
-//	blockchainID := baseTx.BlockchainID
-//
-//	return blockchainID.String(), nil
-//}
+func (s *multisigService) getChainId(txHexString string) (string, error) {
+	var unsignedTx txs.UnsignedTx
+	err := s.unmarshalTx(txHexString, &unsignedTx)
+	if err != nil {
+		return "", ErrParsingChainId
+	}
+	var baseTx = txs.BaseTx{}
+	baseTx.Initialize(unsignedTx.Bytes())
+	blockchainID := baseTx.BlockchainID
+
+	return blockchainID.String(), nil
+}
