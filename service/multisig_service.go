@@ -17,7 +17,7 @@ import (
 	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/constants"
-	"github.com/ava-labs/avalanchego/utils/crypto"
+	"github.com/ava-labs/avalanchego/utils/crypto/secp256k1"
 	"github.com/ava-labs/avalanchego/utils/formatting/address"
 	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ava-labs/avalanchego/vms/platformvm/txs"
@@ -61,7 +61,7 @@ type MultisigService interface {
 
 type multisigService struct {
 	config      *util.Config
-	secpFactory crypto.FactorySECP256K1R
+	secpFactory secp256k1.Factory
 	dao         dao.MultisigTxDao
 	nodeService NodeService
 }
@@ -69,8 +69,8 @@ type multisigService struct {
 func NewMultisigService(config *util.Config, dao dao.MultisigTxDao, nodeService NodeService) MultisigService {
 	return &multisigService{
 		config: config,
-		secpFactory: crypto.FactorySECP256K1R{
-			Cache: cache.LRU{Size: defaultCacheSize},
+		secpFactory: secp256k1.Factory{
+			Cache: cache.LRU[ids.ID, *secp256k1.PublicKey]{Size: defaultCacheSize},
 		},
 		dao:         dao,
 		nodeService: nodeService,
@@ -379,7 +379,7 @@ func (s *multisigService) getChainId(txHexString string) (string, error) {
 		return "", ErrParsingChainId
 	}
 	var baseTx = txs.BaseTx{}
-	baseTx.Initialize(unsignedTx.Bytes())
+	baseTx.SetBytes(unsignedTx.Bytes())
 	blockchainID := baseTx.BlockchainID
 
 	return blockchainID.String(), nil
