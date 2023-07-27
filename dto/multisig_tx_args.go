@@ -20,6 +20,7 @@ type SignTxArgs struct {
 }
 
 type IssueTxArgs struct {
+	Id        string `json:"id" binding:"required"`
 	SignedTx  string `json:"signedTx" binding:"required"`
 	Signature string `json:"signature" binding:"required"`
 }

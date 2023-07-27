@@ -59,6 +59,12 @@ export interface DtoIssueTxArgs {
      * @type {string}
      * @memberof DtoIssueTxArgs
      */
+    'id': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof DtoIssueTxArgs
+     */
     'signature': string;
     /**
      * 
@@ -269,18 +275,14 @@ export const MultisigApiAxiosParamCreator = function (configuration?: Configurat
         /**
          * 
          * @summary Cancel a multisig transaction by setting the expiration to the current time
-         * @param {string} id Multisig transaction ID
          * @param {DtoCancelTxArgs} cancelTxArgs CancelTxArgs object that contains the parameters for the multisig transaction to be canceled
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        cancelMultisigTx: async (id: string, cancelTxArgs: DtoCancelTxArgs, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'id' is not null or undefined
-            assertParamExists('cancelMultisigTx', 'id', id)
+        cancelMultisigTx: async (cancelTxArgs: DtoCancelTxArgs, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'cancelTxArgs' is not null or undefined
             assertParamExists('cancelMultisigTx', 'cancelTxArgs', cancelTxArgs)
-            const localVarPath = `/multisig/cancel`
-                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            const localVarPath = `/multisig/cancel`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -479,13 +481,12 @@ export const MultisigApiFp = function(configuration?: Configuration) {
         /**
          * 
          * @summary Cancel a multisig transaction by setting the expiration to the current time
-         * @param {string} id Multisig transaction ID
          * @param {DtoCancelTxArgs} cancelTxArgs CancelTxArgs object that contains the parameters for the multisig transaction to be canceled
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async cancelMultisigTx(id: string, cancelTxArgs: DtoCancelTxArgs, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.cancelMultisigTx(id, cancelTxArgs, options);
+        async cancelMultisigTx(cancelTxArgs: DtoCancelTxArgs, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.cancelMultisigTx(cancelTxArgs, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -548,13 +549,12 @@ export const MultisigApiFactory = function (configuration?: Configuration, baseP
         /**
          * 
          * @summary Cancel a multisig transaction by setting the expiration to the current time
-         * @param {string} id Multisig transaction ID
          * @param {DtoCancelTxArgs} cancelTxArgs CancelTxArgs object that contains the parameters for the multisig transaction to be canceled
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        cancelMultisigTx(id: string, cancelTxArgs: DtoCancelTxArgs, options?: any): AxiosPromise<void> {
-            return localVarFp.cancelMultisigTx(id, cancelTxArgs, options).then((request) => request(axios, basePath));
+        cancelMultisigTx(cancelTxArgs: DtoCancelTxArgs, options?: any): AxiosPromise<void> {
+            return localVarFp.cancelMultisigTx(cancelTxArgs, options).then((request) => request(axios, basePath));
         },
         /**
          * 
@@ -612,14 +612,13 @@ export class MultisigApi extends BaseAPI {
     /**
      * 
      * @summary Cancel a multisig transaction by setting the expiration to the current time
-     * @param {string} id Multisig transaction ID
      * @param {DtoCancelTxArgs} cancelTxArgs CancelTxArgs object that contains the parameters for the multisig transaction to be canceled
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof MultisigApi
      */
-    public cancelMultisigTx(id: string, cancelTxArgs: DtoCancelTxArgs, options?: AxiosRequestConfig) {
-        return MultisigApiFp(this.configuration).cancelMultisigTx(id, cancelTxArgs, options).then((request) => request(this.axios, this.basePath));
+    public cancelMultisigTx(cancelTxArgs: DtoCancelTxArgs, options?: AxiosRequestConfig) {
+        return MultisigApiFp(this.configuration).cancelMultisigTx(cancelTxArgs, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**

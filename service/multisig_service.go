@@ -133,7 +133,7 @@ func (s *multisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 	if !s.isCreatorOwner(owners, creator) {
 		return nil, ErrAddressNotOwner
 	}
-	// generate txId by hasing the unsignedTx
+	// generate txId by hashing the unsignedTx+current timestamp
 	id, err := s.generateId(unsignedTx)
 	if err != nil {
 		return nil, err
@@ -243,11 +243,7 @@ func (s *multisigService) IssueMultisigTx(sendTxArgs *dto.IssueTxArgs) (ids.ID, 
 		return ids.Empty, err
 	}
 
-	utxBytes, _ := txs.Codec.Marshal(txs.Version, codecWrapper{tx.Unsigned})
-	utxHash := hashing.ComputeHash256(utxBytes)
-	utxHashStr := fmt.Sprintf("%x", utxHash)
-
-	storedTx, err := s.GetMultisigTx(utxHashStr)
+	storedTx, err := s.GetMultisigTx(sendTxArgs.Id)
 	if err != nil {
 		return ids.Empty, err
 	}
@@ -271,7 +267,7 @@ func (s *multisigService) IssueMultisigTx(sendTxArgs *dto.IssueTxArgs) (ids.ID, 
 	if err != nil {
 		return ids.Empty, err
 	}
-	_, err = s.dao.UpdateTransactionId(utxHashStr, txID.String())
+	_, err = s.dao.UpdateTransactionId(sendTxArgs.Id, txID.String())
 	if err != nil {
 		return ids.Empty, err
 	}
@@ -369,7 +365,9 @@ func (s *multisigService) unmarshalTx(txHexString string, tx interface{}) error 
 
 func (s *multisigService) generateId(unsignedTx string) (string, error) {
 	txBytes := common.FromHex(unsignedTx)
-	return fmt.Sprintf("%x", hashing.ComputeHash256(txBytes)), nil
+	// get byte array from timestamp and append it to txBytes
+	timestampBytes := []byte(strconv.FormatInt(time.Now().UnixNano(), 10))
+	return fmt.Sprintf("%x", hashing.ComputeHash256(append(txBytes, timestampBytes...))), nil
 }
 
 func (s *multisigService) getChainId(txHexString string) (string, error) {
