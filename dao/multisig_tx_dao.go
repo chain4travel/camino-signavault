@@ -16,12 +16,13 @@ import (
 
 type MultisigTxDao interface {
 	CreateMultisigTx(multisig *model.MultisigTx) (string, error)
-	GetMultisigTx(id string, alias string, owner string) (*[]model.MultisigTx, error)
+	GetMultisigTx(id string, alias string, owner string, activeOnly bool) (*[]model.MultisigTx, error)
 	UpdateTransactionId(id string, transactionId string) (bool, error)
 	UpdateExpirationDate(id string, expirationDate time.Time) (bool, error)
 	AddSigner(id string, signature string, signerAddress string) (bool, error)
 	PendingAliasExists(alias string, chainId string) (bool, error)
 	DeletePendingTx(id string) (bool, error)
+	DeleteTxOwnersAndUpdateID(id, newId string) error
 }
 type multisigTxDao struct {
 	db *db.Db
@@ -101,9 +102,17 @@ func (d *multisigTxDao) CreateMultisigTx(multisig *model.MultisigTx) (string, er
 
 	return multisig.Id, nil
 }
+func (d *multisigTxDao) GetActiveMultisigTx(id string, alias string, owner string) (*[]model.MultisigTx, error) {
+	return d.GetMultisigTx(id, alias, owner, true)
+}
 
-func (d *multisigTxDao) GetMultisigTx(id string, alias string, owner string) (*[]model.MultisigTx, error) {
+func (d *multisigTxDao) GetMultisigTx(id string, alias string, owner string, activeOnly bool) (*[]model.MultisigTx, error) {
 	var err error
+
+	expiredCondition := ""
+	if activeOnly {
+		expiredCondition = "AND (tx.expires_at > UTC_TIMESTAMP() OR tx.expires_at IS NULL)"
+	}
 
 	var query string
 	var rows *sql.Rows
@@ -125,7 +134,7 @@ func (d *multisigTxDao) GetMultisigTx(id string, alias string, owner string) (*[
 			"owners.is_signer " +
 			"FROM multisig_tx AS tx " +
 			"LEFT JOIN multisig_tx_owners AS owners ON tx.id = owners.multisig_tx_id " +
-			"WHERE (tx.alias=? OR ?='') AND (tx.id=? OR ?='') AND tx.transaction_id IS NULL AND (tx.expires_at > UTC_TIMESTAMP() OR tx.expires_at IS NULL)" +
+			"WHERE (tx.alias=? OR ?='') AND (tx.id=? OR ?='') AND tx.transaction_id IS NULL " + expiredCondition +
 			"ORDER BY tx.created_at ASC"
 		rows, err = d.db.Query(query, alias, alias, id, id)
 	} else {
@@ -377,4 +386,43 @@ func (d *multisigTxDao) AddSigner(id string, signature string, signerAddress str
 	}
 
 	return true, nil
+}
+
+func (d *multisigTxDao) DeleteTxOwnersAndUpdateID(id, newId string) error {
+	tx, err := d.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	// delete owners first
+	stmt, err := tx.Prepare("DELETE FROM multisig_tx_owners WHERE multisig_tx_id = ?")
+	if err != nil {
+		return err
+	}
+	_, err = stmt.Exec(id)
+
+	if err == nil {
+		// delete tx
+		stmt, err = tx.Prepare("UPDATE multisig_tx SET id =?  WHERE id = ?")
+		if err != nil {
+			return err
+		}
+		_, err = stmt.Exec(newId, id)
+	}
+
+	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			log.Printf("Execute statement failed: %v, unable to rollback: %v", err, rollbackErr)
+		}
+		log.Print(err)
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		log.Printf("Commit failed: %v", err)
+		return err
+	}
+
+	return nil
 }

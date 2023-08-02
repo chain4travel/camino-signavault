@@ -6,6 +6,7 @@ package service
 
 import (
 	reflect "reflect"
+	time "time"
 
 	ids "github.com/ava-labs/avalanchego/ids"
 	dto "github.com/chain4travel/camino-signavault/dto"
@@ -123,4 +124,19 @@ func (m *MockMultisigService) SignMultisigTx(arg0 string, arg1 *dto.SignTxArgs) 
 func (mr *MockMultisigServiceMockRecorder) SignMultisigTx(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SignMultisigTx", reflect.TypeOf((*MockMultisigService)(nil).SignMultisigTx), arg0, arg1)
+}
+
+// updateExpiredMultisigTx mocks base method.
+func (m *MockMultisigService) updateExpiredMultisigTx(arg0 time.Time, arg1 *model.MultisigTx) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "updateExpiredMultisigTx", arg0, arg1)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// updateExpiredMultisigTx indicates an expected call of updateExpiredMultisigTx.
+func (mr *MockMultisigServiceMockRecorder) updateExpiredMultisigTx(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "updateExpiredMultisigTx", reflect.TypeOf((*MockMultisigService)(nil).updateExpiredMultisigTx), arg0, arg1)
 }

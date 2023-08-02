@@ -46,7 +46,7 @@ func TestCreateMultisigTx(t *testing.T) {
 		Id: 1,
 	}
 
-	now := time.Now().UTC().Round(time.Second).Add(time.Hour * 24 * 14)
+	nowPlus2Secs := time.Now().UTC().Round(time.Second).Add(time.Second * 2)
 	mockTx := model.MultisigTx{
 		Id:            id,
 		UnsignedTx:    unsignedTx,
@@ -56,7 +56,7 @@ func TestCreateMultisigTx(t *testing.T) {
 		TransactionId: "",
 		OutputOwners:  "OutputOwners",
 		Metadata:      "",
-		Expiration:    &now,
+		Expiration:    &nowPlus2Secs,
 		Owners: []model.MultisigTxOwner{
 			{
 				MultisigTxId: id,
@@ -72,19 +72,24 @@ func TestCreateMultisigTx(t *testing.T) {
 	}
 
 	mockDao.EXPECT().CreateMultisigTx(&mockTx).Return(mockTx.Id, nil)
-	mockDao.EXPECT().GetMultisigTx(mockTx.Id, "", "").Return(&[]model.MultisigTx{mockTx}, nil).AnyTimes()
+	mockDao.EXPECT().GetMultisigTx(mockTx.Id, "", "", false).Return(nil, ErrTxNotExists).Times(1)
+	mockDao.EXPECT().GetMultisigTx(mockTx.Id, "", "", false).Return(&[]model.MultisigTx{mockTx}, nil).Times(1)
+	mockDao.EXPECT().GetMultisigTx(mockTx.Id, "", "", true).Return(&[]model.MultisigTx{mockTx}, nil).AnyTimes()
 	mockDao.EXPECT().PendingAliasExists("P-kopernikus1fq0jc8svlyazhygkj0s36qnl6s0km0h3uuc99e", "11111111111111111111111111111111LpoYY").Return(true, nil)
 	mockDao.EXPECT().PendingAliasExists(gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
-	mockNodeService.EXPECT().GetMultisigAlias(alias).Return(mockAliasInfo, nil)
+	mockNodeService.EXPECT().GetMultisigAlias(alias).Return(mockAliasInfo, nil).AnyTimes()
 	mockNodeService.EXPECT().GetMultisigAlias(gomock.Any()).Return(nil, errAliasInfoNotFound)
+
+	mockDeleteTxOwnersAndUpdateID := mockDao.EXPECT().DeleteTxOwnersAndUpdateID(gomock.Any(), gomock.Any()).Return(nil)
 
 	type args struct {
 		multisigTx *dto.MultisigTxArgs
 	}
 	tests := []struct {
-		name string
-		args args
-		err  error
+		name    string
+		args    args
+		err     error
+		prepare func()
 	}{
 		{
 			name: "Alias with 2 owners",
@@ -123,11 +128,34 @@ func TestCreateMultisigTx(t *testing.T) {
 			},
 			err: ErrPendingTx,
 		},
+		{
+			name: "Create new multisig tx and archive the identical expired one",
+			args: args{
+				multisigTx: &dto.MultisigTxArgs{
+					Alias:        alias,
+					UnsignedTx:   mockTx.UnsignedTx,
+					Signature:    mockTx.Owners[0].Signature,
+					OutputOwners: mockTx.OutputOwners,
+					Expiration:   mockTx.Expiration.Add(time.Second * 5).Unix(),
+				},
+			},
+			err: nil,
+			prepare: func() {
+				mockDeleteTxOwnersAndUpdateID.Times(1)
+				newExpiration := mockTx.Expiration.Add(time.Second * 5)
+				newMockTx := mockTx
+				newMockTx.Expiration = &newExpiration
+				mockDao.EXPECT().CreateMultisigTx(&newMockTx).Return(mockTx.Id, nil)
+				time.Sleep(time.Second * 5) // wait for 1st successful tx to expire
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewMultisigService(mockConfig, mockDao, mockNodeService)
-
+			if tt.prepare != nil {
+				tt.prepare()
+			}
 			_, err := s.CreateMultisigTx(tt.args.multisigTx)
 
 			if tt.err != nil {
@@ -171,9 +199,9 @@ func TestGetAllMultisigTxForAlias(t *testing.T) {
 	}
 
 	// first time return mock
-	mockDao.EXPECT().GetMultisigTx("", mockTx.Alias, mockTx.Owners[0].Address).Return(&[]model.MultisigTx{mockTx}, nil).Times(1)
+	mockDao.EXPECT().GetMultisigTx("", mockTx.Alias, mockTx.Owners[0].Address, true).Return(&[]model.MultisigTx{mockTx}, nil).Times(1)
 	// second time return empty to simulate complete tx for alias
-	mockDao.EXPECT().GetMultisigTx("", mockTx.Alias, mockTx.Owners[0].Address).Return(&[]model.MultisigTx{}, nil).Times(1)
+	mockDao.EXPECT().GetMultisigTx("", mockTx.Alias, mockTx.Owners[0].Address, true).Return(&[]model.MultisigTx{}, nil).Times(1)
 
 	type args struct {
 		alias     string
@@ -252,8 +280,8 @@ func TestGetMultisigTx(t *testing.T) {
 	}
 
 	// first time return mock
-	mockDao.EXPECT().GetMultisigTx(mockTx.Id, "", "").Return(&[]model.MultisigTx{mockTx}, nil).Times(1)
-	mockDao.EXPECT().GetMultisigTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+	mockDao.EXPECT().GetMultisigTx(mockTx.Id, "", "", true).Return(&[]model.MultisigTx{mockTx}, nil).Times(1)
+	mockDao.EXPECT().GetMultisigTx(gomock.Any(), gomock.Any(), gomock.Any(), true).Return(nil, nil).AnyTimes()
 
 	type args struct {
 		id string
@@ -346,10 +374,10 @@ func TestSignMultisigTx(t *testing.T) {
 	}
 
 	// mock without signer
-	mockDao.EXPECT().GetMultisigTx(mockTx.Id, "", "").Return(&[]model.MultisigTx{mockTx}, nil).AnyTimes()
+	mockDao.EXPECT().GetMultisigTx(mockTx.Id, "", "", true).Return(&[]model.MultisigTx{mockTx}, nil).AnyTimes()
 	mockDao.EXPECT().AddSigner(mockTx.Id, "4d974561be4675853e0bc6062eac412228e94b16c6ba86dcfedccc1ef2b2a5156ab5aaddbd11f9d88786563fe9f3c17ca5e44a9936621b027b3179284dd86dc000", mockTx.Owners[0].Address).Return(true, nil).AnyTimes()
 	// mock with existing signer
-	mockDao.EXPECT().GetMultisigTx(mockTxWithSigner.Id, "", "").Return(&[]model.MultisigTx{mockTxWithSigner}, nil).AnyTimes()
+	mockDao.EXPECT().GetMultisigTx(mockTxWithSigner.Id, "", "", true).Return(&[]model.MultisigTx{mockTxWithSigner}, nil).AnyTimes()
 	mockDao.EXPECT().AddSigner(mockTxWithSigner.Id, "4d974561be4675853e0bc6062eac412228e94b16c6ba86dcfedccc1ef2b2a5156ab5aaddbd11f9d88786563fe9f3c17ca5e44a9936621b027b3179284dd86dc000", mockTx.Owners[0].Address).Return(false, nil).AnyTimes()
 
 	type args struct {
@@ -429,7 +457,7 @@ func TestIssueMultisigTx(t *testing.T) {
 	}
 
 	// mock without signer
-	mockDao.EXPECT().GetMultisigTx(mockTx.Id, "", "").Return(&[]model.MultisigTx{mockTx}, nil).AnyTimes()
+	mockDao.EXPECT().GetMultisigTx(mockTx.Id, "", "", true).Return(&[]model.MultisigTx{mockTx}, nil).AnyTimes()
 	mockDao.EXPECT().UpdateTransactionId(mockTx.Id, gomock.Any()).Return(true, nil).AnyTimes()
 	txId, _ := ids.FromString("3N3j8FpRtvx9UAJrsS6CTcsUQPCmRqf4Hjnfp81CuEJSMcqJ2")
 	mockNodeService.EXPECT().IssueTx(gomock.Any()).Return(txId, nil).AnyTimes()
@@ -511,7 +539,7 @@ func TestCancelMultisigTx(t *testing.T) {
 	}
 
 	// mock without signer
-	mockDao.EXPECT().GetMultisigTx(mockTx.Id, "", "").Return(&[]model.MultisigTx{mockTx}, nil).AnyTimes()
+	mockDao.EXPECT().GetMultisigTx(mockTx.Id, "", "", true).Return(&[]model.MultisigTx{mockTx}, nil).AnyTimes()
 	mockDao.EXPECT().DeletePendingTx(mockTx.Id).Return(true, nil).AnyTimes()
 
 	type args struct {

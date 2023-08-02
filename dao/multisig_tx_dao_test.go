@@ -311,7 +311,7 @@ func TestGetMultisigTx(t *testing.T) {
 			d := &multisigTxDao{
 				db: tt.fields.db,
 			}
-			got, err := d.GetMultisigTx(tt.args.id, tt.args.alias, tt.args.owner)
+			got, err := d.GetMultisigTx(tt.args.id, tt.args.alias, tt.args.owner, true)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetMultisigTx() error = %v, wantErr %v", err, tt.wantErr)
 				return
