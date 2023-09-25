@@ -27,6 +27,7 @@ var errAliasInfoNotFound = errors.New("could not find alias info from node - ali
 type NodeService interface {
 	GetMultisigAlias(alias string) (*model.AliasInfo, error)
 	IssueTx(txBytes []byte) (ids.ID, error)
+	GetAllDepositOffers(args *platformvm.GetAllDepositOffersArgs) (*platformvm.GetAllDepositOffersReply, error)
 }
 
 type nodeService struct {
@@ -79,6 +80,10 @@ func (s *nodeService) GetMultisigAlias(alias string) (*model.AliasInfo, error) {
 
 func (s *nodeService) IssueTx(txBytes []byte) (ids.ID, error) {
 	return s.client.IssueTx(context.Background(), txBytes)
+}
+
+func (s *nodeService) GetAllDepositOffers(args *platformvm.GetAllDepositOffersArgs) (*platformvm.GetAllDepositOffersReply, error) {
+	return s.client.GetAllDepositOffers(context.Background(), args)
 }
 
 func (s *nodeService) unmarshal(data []byte, v interface{}) error {

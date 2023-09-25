@@ -54,6 +54,12 @@ func startRouter(cfg *util.Config) {
 	api.PUT("/multisig/:id", h.SignMultisigTx)
 	api.GET("/multisig/:alias", h.GetAllMultisigTxForAlias)
 
+	depositOfferService := service.NewDepositOfferService(cfg, dao.NewDepositOfferDao(db.GetInstance()), service.NewNodeService(cfg))
+	doh := handler.NewDepositOfferHandler(depositOfferService)
+
+	api.POST("/deposit-offer", doh.AddSignature)
+	api.GET("/deposit-offer/:address", doh.GetSignatures)
+
 	err = router.Run(cfg.ListenerAddress)
 	if err != nil {
 		log.Fatal(err)

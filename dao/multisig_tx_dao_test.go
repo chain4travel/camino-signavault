@@ -3,6 +3,8 @@ package dao
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"github.com/ava-labs/avalanchego/ids"
 	"github.com/chain4travel/camino-signavault/db"
 	"github.com/chain4travel/camino-signavault/model"
 	"github.com/chain4travel/camino-signavault/test"
@@ -72,6 +74,16 @@ func TestMain(m *testing.M) {
 }
 
 func TestNewMultisigTxDao(t *testing.T) {
+
+	id := ids.GenerateTestID().String()
+	fmt.Println(id)
+	i, e := ids.FromString(id)
+	if e != nil {
+		fmt.Println(e)
+	} else {
+		fmt.Println(i)
+	}
+
 	type args struct {
 		db *db.Db
 	}
