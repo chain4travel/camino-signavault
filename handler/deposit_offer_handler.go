@@ -31,7 +31,7 @@ func NewDepositOfferHandler(DepositOfferService service.DepositOfferService) *de
 
 // AddSignature godoc
 // @Summary Adds a signature mapped to a deposit offer id and an address
-// @Tags Multisig
+// @Tags DepositOffer
 // @Accept  json
 // @Produce  json
 // @Param addSignatureArgs body dto.AddSignatureArgs true "The input parameters for the multisig transaction"
@@ -63,16 +63,16 @@ func (h *depositOfferHandler) AddSignature(ctx *gin.Context) {
 	ctx.Status(http.StatusCreated)
 }
 
-// GetAllMultisigTxForAlias godoc
-// @Summary Retrieves all multisig transactions for a given alias
-// @Tags Multisig
-// @Param alias path string true "Alias of the multisig account"
+// GetSignatures godoc
+// @Summary Retrieves all signatures for an address only for authorized calls.
+// @Tags DepositOffer
+// @Param address path string true "Address for which to retrieve all signatures"
 // @Param signature query string true "Signature for the request"
 // @Param timestamp query string true "Timestamp for the request"
 // @Produce  json
-// @Success 200 {array} model.MultisigTx
+// @Success 200 {array} model.DepositOfferSig
 // @Failure 400 {object}  dto.SignavaultError
-// @ID GetAllMultisigTxForAlias
+// @ID GetSignatures
 // @Router /deposit-offer/{address} [get]
 func (h *depositOfferHandler) GetSignatures(ctx *gin.Context) {
 	address := ctx.Param("address")
@@ -91,7 +91,7 @@ func (h *depositOfferHandler) GetSignatures(ctx *gin.Context) {
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest,
 			&dto.SignavaultError{
-				Message: fmt.Sprintf("Error getting all deposit offer signatures for adadress %s", address),
+				Message: fmt.Sprintf("Error getting all deposit offer signatures for address %s", address),
 				Error:   err.Error(),
 			})
 		return

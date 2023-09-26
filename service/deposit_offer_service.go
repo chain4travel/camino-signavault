@@ -2,10 +2,13 @@ package service
 
 import (
 	"errors"
+	"time"
+
 	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/crypto/secp256k1"
 	"github.com/ava-labs/avalanchego/utils/hashing"
+	"github.com/ava-labs/avalanchego/utils/json"
 	"github.com/ava-labs/avalanchego/vms/platformvm"
 	"github.com/chain4travel/camino-signavault/dao"
 	"github.com/chain4travel/camino-signavault/dto"
@@ -62,7 +65,13 @@ func (s *depositOfferService) AddSignature(args *dto.AddSignatureArgs) error {
 		return ErrParsingSignature
 	}
 
-	reply, err := s.nodeService.GetAllDepositOffers(&platformvm.GetAllDepositOffersArgs{})
+	// if no timestamp is provided, use current time
+	t := json.Uint64(time.Now().Unix())
+	if args.Timestamp != 0 {
+		t = json.Uint64(args.Timestamp)
+	}
+
+	reply, err := s.nodeService.GetAllDepositOffers(&platformvm.GetAllDepositOffersArgs{Timestamp: t})
 	var depositOffer *platformvm.APIDepositOffer
 	for _, do := range reply.DepositOffers {
 		if do.ID == id {

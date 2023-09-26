@@ -26,6 +26,37 @@ import { BASE_PATH, COLLECTION_FORMATS, BaseAPI, RequiredError } from './base';
 /**
  * 
  * @export
+ * @interface DtoAddSignatureArgs
+ */
+export interface DtoAddSignatureArgs {
+    /**
+     * 
+     * @type {string}
+     * @memberof DtoAddSignatureArgs
+     */
+    'address': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof DtoAddSignatureArgs
+     */
+    'depositOfferID': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof DtoAddSignatureArgs
+     */
+    'signature': string;
+    /**
+     * 
+     * @type {number}
+     * @memberof DtoAddSignatureArgs
+     */
+    'timestamp'?: number;
+}
+/**
+ * 
+ * @export
  * @interface DtoCancelTxArgs
  */
 export interface DtoCancelTxArgs {
@@ -164,6 +195,31 @@ export interface DtoSignavaultError {
 /**
  * 
  * @export
+ * @interface ModelDepositOfferSig
+ */
+export interface ModelDepositOfferSig {
+    /**
+     * 
+     * @type {string}
+     * @memberof ModelDepositOfferSig
+     */
+    'address'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ModelDepositOfferSig
+     */
+    'depositOfferID'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ModelDepositOfferSig
+     */
+    'signature'?: string;
+}
+/**
+ * 
+ * @export
  * @interface ModelMultisigTx
  */
 export interface ModelMultisigTx {
@@ -261,6 +317,201 @@ export interface ModelMultisigTxOwner {
 }
 
 /**
+ * DepositOfferApi - axios parameter creator
+ * @export
+ */
+export const DepositOfferApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * 
+         * @summary Adds a signature mapped to a deposit offer id and an address
+         * @param {DtoAddSignatureArgs} addSignatureArgs The input parameters for the multisig transaction
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        addSignature: async (addSignatureArgs: DtoAddSignatureArgs, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'addSignatureArgs' is not null or undefined
+            assertParamExists('addSignature', 'addSignatureArgs', addSignatureArgs)
+            const localVarPath = `/deposit-offer`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(addSignatureArgs, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary Retrieves all signatures for an address only for authorized calls.
+         * @param {string} address Address for which to retrieve all signatures
+         * @param {string} signature Signature for the request
+         * @param {string} timestamp Timestamp for the request
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getSignatures: async (address: string, signature: string, timestamp: string, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'address' is not null or undefined
+            assertParamExists('getSignatures', 'address', address)
+            // verify required parameter 'signature' is not null or undefined
+            assertParamExists('getSignatures', 'signature', signature)
+            // verify required parameter 'timestamp' is not null or undefined
+            assertParamExists('getSignatures', 'timestamp', timestamp)
+            const localVarPath = `/deposit-offer/{address}`
+                .replace(`{${"address"}}`, encodeURIComponent(String(address)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            if (signature !== undefined) {
+                localVarQueryParameter['signature'] = signature;
+            }
+
+            if (timestamp !== undefined) {
+                localVarQueryParameter['timestamp'] = timestamp;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * DepositOfferApi - functional programming interface
+ * @export
+ */
+export const DepositOfferApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = DepositOfferApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * 
+         * @summary Adds a signature mapped to a deposit offer id and an address
+         * @param {DtoAddSignatureArgs} addSignatureArgs The input parameters for the multisig transaction
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async addSignature(addSignatureArgs: DtoAddSignatureArgs, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.addSignature(addSignatureArgs, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+        /**
+         * 
+         * @summary Retrieves all signatures for an address only for authorized calls.
+         * @param {string} address Address for which to retrieve all signatures
+         * @param {string} signature Signature for the request
+         * @param {string} timestamp Timestamp for the request
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getSignatures(address: string, signature: string, timestamp: string, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<ModelDepositOfferSig>>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getSignatures(address, signature, timestamp, options);
+            return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
+        },
+    }
+};
+
+/**
+ * DepositOfferApi - factory interface
+ * @export
+ */
+export const DepositOfferApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = DepositOfferApiFp(configuration)
+    return {
+        /**
+         * 
+         * @summary Adds a signature mapped to a deposit offer id and an address
+         * @param {DtoAddSignatureArgs} addSignatureArgs The input parameters for the multisig transaction
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        addSignature(addSignatureArgs: DtoAddSignatureArgs, options?: any): AxiosPromise<void> {
+            return localVarFp.addSignature(addSignatureArgs, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary Retrieves all signatures for an address only for authorized calls.
+         * @param {string} address Address for which to retrieve all signatures
+         * @param {string} signature Signature for the request
+         * @param {string} timestamp Timestamp for the request
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getSignatures(address: string, signature: string, timestamp: string, options?: any): AxiosPromise<Array<ModelDepositOfferSig>> {
+            return localVarFp.getSignatures(address, signature, timestamp, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * DepositOfferApi - object-oriented interface
+ * @export
+ * @class DepositOfferApi
+ * @extends {BaseAPI}
+ */
+export class DepositOfferApi extends BaseAPI {
+    /**
+     * 
+     * @summary Adds a signature mapped to a deposit offer id and an address
+     * @param {DtoAddSignatureArgs} addSignatureArgs The input parameters for the multisig transaction
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DepositOfferApi
+     */
+    public addSignature(addSignatureArgs: DtoAddSignatureArgs, options?: AxiosRequestConfig) {
+        return DepositOfferApiFp(this.configuration).addSignature(addSignatureArgs, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary Retrieves all signatures for an address only for authorized calls.
+     * @param {string} address Address for which to retrieve all signatures
+     * @param {string} signature Signature for the request
+     * @param {string} timestamp Timestamp for the request
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DepositOfferApi
+     */
+    public getSignatures(address: string, signature: string, timestamp: string, options?: AxiosRequestConfig) {
+        return DepositOfferApiFp(this.configuration).getSignatures(address, signature, timestamp, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+
+/**
  * MultisigApi - axios parameter creator
  * @export
  */
@@ -269,18 +520,14 @@ export const MultisigApiAxiosParamCreator = function (configuration?: Configurat
         /**
          * 
          * @summary Cancel a multisig transaction by setting the expiration to the current time
-         * @param {string} id Multisig transaction ID
          * @param {DtoCancelTxArgs} cancelTxArgs CancelTxArgs object that contains the parameters for the multisig transaction to be canceled
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        cancelMultisigTx: async (id: string, cancelTxArgs: DtoCancelTxArgs, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'id' is not null or undefined
-            assertParamExists('cancelMultisigTx', 'id', id)
+        cancelMultisigTx: async (cancelTxArgs: DtoCancelTxArgs, options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'cancelTxArgs' is not null or undefined
             assertParamExists('cancelMultisigTx', 'cancelTxArgs', cancelTxArgs)
-            const localVarPath = `/multisig/cancel`
-                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            const localVarPath = `/multisig/cancel`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -479,13 +726,12 @@ export const MultisigApiFp = function(configuration?: Configuration) {
         /**
          * 
          * @summary Cancel a multisig transaction by setting the expiration to the current time
-         * @param {string} id Multisig transaction ID
          * @param {DtoCancelTxArgs} cancelTxArgs CancelTxArgs object that contains the parameters for the multisig transaction to be canceled
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async cancelMultisigTx(id: string, cancelTxArgs: DtoCancelTxArgs, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.cancelMultisigTx(id, cancelTxArgs, options);
+        async cancelMultisigTx(cancelTxArgs: DtoCancelTxArgs, options?: AxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.cancelMultisigTx(cancelTxArgs, options);
             return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
         },
         /**
@@ -548,13 +794,12 @@ export const MultisigApiFactory = function (configuration?: Configuration, baseP
         /**
          * 
          * @summary Cancel a multisig transaction by setting the expiration to the current time
-         * @param {string} id Multisig transaction ID
          * @param {DtoCancelTxArgs} cancelTxArgs CancelTxArgs object that contains the parameters for the multisig transaction to be canceled
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        cancelMultisigTx(id: string, cancelTxArgs: DtoCancelTxArgs, options?: any): AxiosPromise<void> {
-            return localVarFp.cancelMultisigTx(id, cancelTxArgs, options).then((request) => request(axios, basePath));
+        cancelMultisigTx(cancelTxArgs: DtoCancelTxArgs, options?: any): AxiosPromise<void> {
+            return localVarFp.cancelMultisigTx(cancelTxArgs, options).then((request) => request(axios, basePath));
         },
         /**
          * 
@@ -612,14 +857,13 @@ export class MultisigApi extends BaseAPI {
     /**
      * 
      * @summary Cancel a multisig transaction by setting the expiration to the current time
-     * @param {string} id Multisig transaction ID
      * @param {DtoCancelTxArgs} cancelTxArgs CancelTxArgs object that contains the parameters for the multisig transaction to be canceled
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof MultisigApi
      */
-    public cancelMultisigTx(id: string, cancelTxArgs: DtoCancelTxArgs, options?: AxiosRequestConfig) {
-        return MultisigApiFp(this.configuration).cancelMultisigTx(id, cancelTxArgs, options).then((request) => request(this.axios, this.basePath));
+    public cancelMultisigTx(cancelTxArgs: DtoCancelTxArgs, options?: AxiosRequestConfig) {
+        return MultisigApiFp(this.configuration).cancelMultisigTx(cancelTxArgs, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -673,5 +917,6 @@ export class MultisigApi extends BaseAPI {
         return MultisigApiFp(this.configuration).signMultisigTx(id, signTxArgs, options).then((request) => request(this.axios, this.basePath));
     }
 }
+
 
 
