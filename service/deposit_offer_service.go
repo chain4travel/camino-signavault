@@ -63,7 +63,6 @@ func (s *depositOfferService) AddSignature(args *dto.AddSignatureArgs) error {
 	}
 
 	reply, err := s.nodeService.GetAllDepositOffers(&platformvm.GetAllDepositOffersArgs{})
-	reply.DepositOffers = append(reply.DepositOffers, &platformvm.APIDepositOffer{ID: id, OwnerAddress: signer})
 	var depositOffer *platformvm.APIDepositOffer
 	for _, do := range reply.DepositOffers {
 		if do.ID == id {

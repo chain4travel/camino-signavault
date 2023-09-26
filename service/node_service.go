@@ -22,7 +22,7 @@ import (
 	"github.com/chain4travel/camino-signavault/util"
 )
 
-var errAliasInfoNotFound = errors.New("could not find alias info from node - alias does not exist")
+var errAliasInfoNotFound = errors.New("could not find address info from node - address does not exist")
 
 type NodeService interface {
 	GetMultisigAlias(alias string) (*model.AliasInfo, error)
