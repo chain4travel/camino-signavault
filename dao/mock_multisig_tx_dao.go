@@ -80,19 +80,33 @@ func (mr *MockMultisigTxDaoMockRecorder) DeletePendingTx(arg0 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeletePendingTx", reflect.TypeOf((*MockMultisigTxDao)(nil).DeletePendingTx), arg0)
 }
 
-// GetMultisigTx mocks base method.
-func (m *MockMultisigTxDao) GetMultisigTx(arg0, arg1, arg2 string) (*[]model.MultisigTx, error) {
+// DeleteTxOwnersAndUpdateID mocks base method.
+func (m *MockMultisigTxDao) DeleteTxOwnersAndUpdateID(arg0, arg1 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMultisigTx", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "DeleteTxOwnersAndUpdateID", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteTxOwnersAndUpdateID indicates an expected call of DeleteTxOwnersAndUpdateID.
+func (mr *MockMultisigTxDaoMockRecorder) DeleteTxOwnersAndUpdateID(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTxOwnersAndUpdateID", reflect.TypeOf((*MockMultisigTxDao)(nil).DeleteTxOwnersAndUpdateID), arg0, arg1)
+}
+
+// GetMultisigTx mocks base method.
+func (m *MockMultisigTxDao) GetMultisigTx(arg0, arg1, arg2 string, arg3 bool) (*[]model.MultisigTx, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMultisigTx", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(*[]model.MultisigTx)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetMultisigTx indicates an expected call of GetMultisigTx.
-func (mr *MockMultisigTxDaoMockRecorder) GetMultisigTx(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockMultisigTxDaoMockRecorder) GetMultisigTx(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMultisigTx", reflect.TypeOf((*MockMultisigTxDao)(nil).GetMultisigTx), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMultisigTx", reflect.TypeOf((*MockMultisigTxDao)(nil).GetMultisigTx), arg0, arg1, arg2, arg3)
 }
 
 // PendingAliasExists mocks base method.
