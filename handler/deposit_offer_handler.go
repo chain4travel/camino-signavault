@@ -8,6 +8,7 @@ package handler
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/chain4travel/camino-signavault/dto"
 	"github.com/chain4travel/camino-signavault/service"
@@ -69,6 +70,7 @@ func (h *depositOfferHandler) AddSignature(ctx *gin.Context) {
 // @Param address path string true "Address for which to retrieve all signatures"
 // @Param signature query string true "Signature for the request"
 // @Param timestamp query string true "Timestamp for the request"
+// @Param multisig query string true "true if the address is a multisig address, false otherwise"
 // @Produce  json
 // @Success 200 {array} model.DepositOfferSig
 // @Failure 400 {object}  dto.SignavaultError
@@ -86,8 +88,21 @@ func (h *depositOfferHandler) GetSignatures(ctx *gin.Context) {
 		h.throwMissingQueryParamError(ctx, "timestamp")
 		return
 	}
+	multisigParam, b := ctx.GetQuery("multisig")
+	if !b {
+		h.throwMissingQueryParamError(ctx, "multisig")
+		return
+	}
+	multisig, err := strconv.ParseBool(multisigParam)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, &dto.SignavaultError{
+			Message: fmt.Sprintf("invalid query parameter: multisig='%s'", multisigParam),
+			Error:   "invalid query parameter",
+		})
+		return
+	}
 
-	sigs, err := h.DepositOfferService.GetSignatures(address, timestamp, signature)
+	sigs, err := h.DepositOfferService.GetSignatures(address, timestamp, signature, multisig)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest,
 			&dto.SignavaultError{
