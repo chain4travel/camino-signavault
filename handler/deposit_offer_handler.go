@@ -46,7 +46,7 @@ func (h *depositOfferHandler) AddSignature(ctx *gin.Context) {
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest,
 			&dto.SignavaultError{
-				Message: "Error parsing signature args from JSON",
+				Message: "Error parsing signature args",
 				Error:   err.Error(),
 			})
 		return
@@ -56,7 +56,7 @@ func (h *depositOfferHandler) AddSignature(ctx *gin.Context) {
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest,
 			&dto.SignavaultError{
-				Message: "Error creating multisig transaction",
+				Message: "Error inserting signature",
 				Error:   err.Error(),
 			})
 		return

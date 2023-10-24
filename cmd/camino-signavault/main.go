@@ -45,7 +45,9 @@ func startRouter(cfg *util.Config) {
 	}
 	api := router.Group("/v1")
 
-	multisigService := service.NewMultisigService(cfg, dao.NewMultisigTxDao(db.GetInstance()), service.NewNodeService(cfg))
+	nodeService := service.NewNodeService(cfg)
+
+	multisigService := service.NewMultisigService(cfg, dao.NewMultisigTxDao(db.GetInstance()), nodeService)
 	h := handler.NewMultisigHandler(multisigService)
 
 	api.POST("/multisig", h.CreateMultisigTx)
@@ -54,7 +56,7 @@ func startRouter(cfg *util.Config) {
 	api.PUT("/multisig/:id", h.SignMultisigTx)
 	api.GET("/multisig/:alias", h.GetAllMultisigTxForAlias)
 
-	depositOfferService := service.NewDepositOfferService(cfg, dao.NewDepositOfferDao(db.GetInstance()), service.NewNodeService(cfg))
+	depositOfferService := service.NewDepositOfferService(cfg, dao.NewDepositOfferDao(db.GetInstance()), nodeService)
 	doh := handler.NewDepositOfferHandler(depositOfferService)
 
 	api.POST("/deposit-offer", doh.AddSignature)
