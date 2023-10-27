@@ -28,11 +28,7 @@ func (d *depositOfferDao) AddSignature(depositOfferID, address, signature string
 		return err
 	}
 
-	stmt, err := tx.Prepare("INSERT INTO deposit_offer_sigs (deposit_offer_id, address, signature) VALUES (?, ?, ?)")
-	if err != nil {
-		return err
-	}
-	_, err = stmt.Exec(depositOfferID, address, signature)
+	_, err = tx.Exec("INSERT INTO deposit_offer_sigs (deposit_offer_id, address, signature) VALUES (?, ?, ?)", depositOfferID, address, signature)
 	if err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			log.Printf("Execute statement failed: %v, unable to rollback: %v", err, rollbackErr)
@@ -75,17 +71,17 @@ func (d *depositOfferDao) GetSignatures(address string) (*[]model.DepositOfferSi
 
 	for rows.Next() {
 		var (
-			depositOfferId string
+			depositOfferID string
 			signature      string
 		)
 
-		err = rows.Scan(&depositOfferId, &address, &signature)
+		err = rows.Scan(&depositOfferID, &signature)
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		result = append(result, model.DepositOfferSig{
-			DepositOfferID: depositOfferId,
+			DepositOfferID: depositOfferID,
 			Address:        address,
 			Signature:      signature,
 		})

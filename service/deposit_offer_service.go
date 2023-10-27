@@ -8,7 +8,6 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/utils/crypto/secp256k1"
-	"github.com/ava-labs/avalanchego/utils/formatting/address"
 	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ava-labs/avalanchego/utils/json"
 	"github.com/ava-labs/avalanchego/vms/platformvm"
@@ -18,6 +17,8 @@ import (
 	"github.com/chain4travel/camino-signavault/util"
 	"github.com/ethereum/go-ethereum/common"
 	"golang.org/x/exp/slices"
+
+	addr_utils "github.com/ava-labs/avalanchego/utils/formatting/address"
 )
 
 var _ DepositOfferService = (*depositOfferService)(nil)
@@ -118,7 +119,7 @@ func (s *depositOfferService) GetSignatures(address, timestamp, signature string
 			return nil, ErrNoAliasFound
 		}
 
-		signer, err := toBech32Addr(s.config.NetworkId, sigOwner)
+		signer, err := addr_utils.Format(util.PChainAlias, constants.GetHRP(s.config.NetworkId), sigOwner.Bytes())
 		if err != nil {
 			return nil, err
 		}
@@ -141,13 +142,4 @@ func (s *depositOfferService) getAddressFromSignature(signatureArgs []byte, sign
 	}
 
 	return pub.Address(), nil
-}
-
-func toBech32Addr(networkID uint32, addr ids.ShortID) (string, error) {
-	hrp := constants.NetworkIDToHRP[networkID]
-	bech32Address, err := address.FormatBech32(hrp, addr.Bytes())
-	if err != nil {
-		return "", err
-	}
-	return "P-" + bech32Address, nil
 }
