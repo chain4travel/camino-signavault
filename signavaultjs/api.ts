@@ -31,10 +31,10 @@ import { BASE_PATH, COLLECTION_FORMATS, BaseAPI, RequiredError } from './base';
 export interface DtoAddSignatureArgs {
     /**
      * 
-     * @type {string}
+     * @type {Array<string>}
      * @memberof DtoAddSignatureArgs
      */
-    'address': string;
+    'addresses': Array<string>;
     /**
      * 
      * @type {string}
@@ -43,10 +43,10 @@ export interface DtoAddSignatureArgs {
     'depositOfferID': string;
     /**
      * 
-     * @type {string}
+     * @type {Array<string>}
      * @memberof DtoAddSignatureArgs
      */
-    'signature': string;
+    'signatures': Array<string>;
     /**
      * used for querying deposit offers. optional: if not provided, current time is used
      * @type {number}

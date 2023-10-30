@@ -35,18 +35,18 @@ func (m *MockDepositOfferService) EXPECT() *MockDepositOfferServiceMockRecorder 
 	return m.recorder
 }
 
-// AddSignature mocks base method.
-func (m *MockDepositOfferService) AddSignature(arg0 *dto.AddSignatureArgs) error {
+// AddSignatures mocks base method.
+func (m *MockDepositOfferService) AddSignatures(arg0 *dto.AddSignatureArgs) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddSignature", arg0)
+	ret := m.ctrl.Call(m, "AddSignatures", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// AddSignature indicates an expected call of AddSignature.
-func (mr *MockDepositOfferServiceMockRecorder) AddSignature(arg0 interface{}) *gomock.Call {
+// AddSignatures indicates an expected call of AddSignatures.
+func (mr *MockDepositOfferServiceMockRecorder) AddSignatures(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddSignature", reflect.TypeOf((*MockDepositOfferService)(nil).AddSignature), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddSignatures", reflect.TypeOf((*MockDepositOfferService)(nil).AddSignatures), arg0)
 }
 
 // GetSignatures mocks base method.

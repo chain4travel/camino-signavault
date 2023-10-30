@@ -21,18 +21,12 @@ import (
 	"testing"
 )
 
-func TestAddSignature(t *testing.T) {
+func TestAddSignatures(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockNodeService := NewMockNodeService(ctrl)
 	mockDao := dao.NewMockDepositOfferDao(ctrl)
 	mockConfig := &util.Config{
 		NetworkId: networkId,
-	}
-
-	mockSig := dto.AddSignatureArgs{
-		DepositOfferID: "TtF4d2QWbk5vzQGTEPrN48x6vwgAoAmKQ9cbp79inpQmcRKES",
-		Address:        "7Sdex3LTEjsnswW38Eb48hQ9insctGrsN",
-		Signature:      "3dcbee3d459c03c5741a7bbf434688af933e5d63c5ad38df16b08ed86f8e74012db9105d791fa408535b94a14660674938105f02ca22a69596a8f57ba1f448f201",
 	}
 
 	offerID, err := ids.FromString("TtF4d2QWbk5vzQGTEPrN48x6vwgAoAmKQ9cbp79inpQmcRKES")
@@ -49,13 +43,25 @@ func TestAddSignature(t *testing.T) {
 		ID:           offerID,
 		OwnerAddress: addr2,
 	}
+	sigs := []string{"3dcbee3d459c03c5741a7bbf434688af933e5d63c5ad38df16b08ed86f8e74012db9105d791fa408535b94a14660674938105f02ca22a69596a8f57ba1f448f201"}
+	mockSig := dto.AddSignatureArgs{
+		DepositOfferID: offerID.String(),
+		Addresses:      []string{addr.String()},
+		Signatures:     sigs,
+	}
+	mockMultipleSigs := dto.AddSignatureArgs{
+		DepositOfferID: offerID.String(),
+		Addresses:      []string{addr.String(), addr2.String()},
+		Signatures:     append(sigs, "f2e5662693c3307f8ed970db60e95e45ca544ffed881fa3654a0f5ca508f248e0355f06d55c63289c3d387131976064cdcb3e1ee9e93e11607d5d352c75710fa00"),
+	}
 	// first time return mock
-	mockDao.EXPECT().AddSignature(mockSig.DepositOfferID, mockSig.Address, mockSig.Signature).Return(nil).Times(1)
-	mockNodeService.EXPECT().GetAllDepositOffers(&platformvm.GetAllDepositOffersArgs{}).
-		Return(&platformvm.GetAllDepositOffersReply{DepositOffers: []*platformvm.APIDepositOffer{offer}}, nil).Times(1)
-	mockNodeService.EXPECT().GetAllDepositOffers(&platformvm.GetAllDepositOffersArgs{}).
-		Return(&platformvm.GetAllDepositOffersReply{DepositOffers: []*platformvm.APIDepositOffer{offer2}}, nil).Times(1)
-	mockNodeService.EXPECT().GetAllDepositOffers(&platformvm.GetAllDepositOffersArgs{}).
+	mockDao.EXPECT().AddSignatures(mockSig.DepositOfferID, mockSig.Addresses, mockSig.Signatures).Return(nil).Times(1)
+	mockDao.EXPECT().AddSignatures(mockMultipleSigs.DepositOfferID, mockMultipleSigs.Addresses, mockMultipleSigs.Signatures).Return(nil).Times(1)
+	mockNodeService.EXPECT().GetAllDepositOffers(gomock.Any()).
+		Return(&platformvm.GetAllDepositOffersReply{DepositOffers: []*platformvm.APIDepositOffer{offer}}, nil).Times(3)
+	mockNodeService.EXPECT().GetAllDepositOffers(gomock.Any()).
+		Return(&platformvm.GetAllDepositOffersReply{DepositOffers: []*platformvm.APIDepositOffer{offer2}}, nil).Times(2)
+	mockNodeService.EXPECT().GetAllDepositOffers(gomock.Any()).
 		Return(&platformvm.GetAllDepositOffersReply{DepositOffers: []*platformvm.APIDepositOffer{}}, nil).AnyTimes()
 
 	tests := []struct {
@@ -66,27 +72,63 @@ func TestAddSignature(t *testing.T) {
 		{
 			name: "Add signature - success",
 			args: &dto.AddSignatureArgs{
-				DepositOfferID: "TtF4d2QWbk5vzQGTEPrN48x6vwgAoAmKQ9cbp79inpQmcRKES",
-				Address:        "7Sdex3LTEjsnswW38Eb48hQ9insctGrsN",
-				Signature:      "3dcbee3d459c03c5741a7bbf434688af933e5d63c5ad38df16b08ed86f8e74012db9105d791fa408535b94a14660674938105f02ca22a69596a8f57ba1f448f201",
+				DepositOfferID: offerID.String(),
+				Addresses:      []string{addr.String()},
+				Signatures:     sigs,
 			},
 			err: nil,
 		},
 		{
-			name: "Invalid signature",
+			name: "Add multiple signatures at once - success",
 			args: &dto.AddSignatureArgs{
-				DepositOfferID: "TtF4d2QWbk5vzQGTEPrN48x6vwgAoAmKQ9cbp79inpQmcRKES",
-				Address:        "6Y3kysjF9jnHnYkdS9yGAuoHyae2eNmeV",
-				Signature:      "3dcbee3d459c03c5741a7bbf434688af933e5d63c5ad38df16b08ed86f8e74012db9105d791fa408535b94a14660674938105f02ca22a69596a8f57ba1f448f201",
+				DepositOfferID: offerID.String(),
+				Addresses:      mockMultipleSigs.Addresses,
+				Signatures:     mockMultipleSigs.Signatures,
+			},
+			err: nil,
+		},
+		{
+			name: "Fail on verifying 1/2 of provided signatures",
+			args: &dto.AddSignatureArgs{
+				DepositOfferID: offerID.String(),
+				Addresses:      []string{addr.String(), addr2.String()},
+				Signatures:     append(sigs, "55f9ab9eb87ea1c6a2865781eaae6d2acbe1c7a497e9213c92b45c7de0bee3db0ef1ec3e6b401c52305c20568290db36af1f4204c7d8672b1c649bd18e0d5ad300"), //invalid 2nd sig
 			},
 			err: ErrInvalidSignature,
 		},
 		{
+			name: "Mismatch addresses and signatures",
+			args: &dto.AddSignatureArgs{
+				DepositOfferID: offerID.String(),
+				Addresses:      []string{addr.String(), addr2.String()},
+				Signatures:     sigs,
+			},
+			err: ErrAddressesSigsMismatch,
+		},
+		{
+			name: "Invalid signature",
+			args: &dto.AddSignatureArgs{
+				DepositOfferID: offerID.String(),
+				Addresses:      []string{addr2.String()},
+				Signatures:     sigs,
+			},
+			err: ErrInvalidSignature,
+		},
+		{
+			name: "Invalid addr",
+			args: &dto.AddSignatureArgs{
+				DepositOfferID: offerID.String(),
+				Addresses:      []string{"s6Y3kysjF9jnHnYkdS9yGAuoHyae2eNmeV"},
+				Signatures:     sigs,
+			},
+			err: ErrParsingAddress,
+		},
+		{
 			name: "Deposit offer not found",
 			args: &dto.AddSignatureArgs{
-				DepositOfferID: "TtF4d2QWbk5vzQGTEPrN48x6vwgAoAmKQ9cbp79inpQmcRKES",
-				Address:        "7Sdex3LTEjsnswW38Eb48hQ9insctGrsN",
-				Signature:      "3dcbee3d459c03c5741a7bbf434688af933e5d63c5ad38df16b08ed86f8e74012db9105d791fa408535b94a14660674938105f02ca22a69596a8f57ba1f448f201",
+				DepositOfferID: offerID.String(),
+				Addresses:      []string{addr.String()},
+				Signatures:     sigs,
 			},
 			err: ErrDepositOfferNotFound,
 		},
@@ -94,25 +136,16 @@ func TestAddSignature(t *testing.T) {
 			name: "Invalid deposit offer id",
 			args: &dto.AddSignatureArgs{
 				DepositOfferID: "invalidid",
-				Address:        "6Y3kysjF9jnHnYkdS9yGAuoHyae2eNmeV",
-				Signature:      "3dcbee3d459c03c5741a7bbf434688af933e5d63c5ad38df16b08ed86f8e74012db9105d791fa408535b94a14660674938105f02ca22a69596a8f57ba1f448f201",
+				Addresses:      []string{addr2.String()},
+				Signatures:     sigs,
 			},
 			err: ErrParsingDepositOfferID,
-		},
-		{
-			name: "Invalid addr",
-			args: &dto.AddSignatureArgs{
-				DepositOfferID: "TtF4d2QWbk5vzQGTEPrN48x6vwgAoAmKQ9cbp79inpQmcRKES",
-				Address:        "s6Y3kysjF9jnHnYkdS9yGAuoHyae2eNmeV",
-				Signature:      "3dcbee3d459c03c5741a7bbf434688af933e5d63c5ad38df16b08ed86f8e74012db9105d791fa408535b94a14660674938105f02ca22a69596a8f57ba1f448f201",
-			},
-			err: ErrParsingAddress,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewDepositOfferService(mockConfig, mockDao, mockNodeService)
-			err := s.AddSignature(tt.args)
+			err := s.AddSignatures(tt.args)
 			require.ErrorIs(t, err, tt.err)
 		})
 	}

@@ -24,7 +24,7 @@ import (
 var _ DepositOfferService = (*depositOfferService)(nil)
 
 type DepositOfferService interface {
-	AddSignature(args *dto.AddSignatureArgs) error
+	AddSignatures(args *dto.AddSignatureArgs) error
 	GetSignatures(address, timestamp, signature string, multisig bool) (*[]model.DepositOfferSig, error)
 }
 
@@ -41,6 +41,7 @@ var (
 	ErrDepositOfferNotFound  = errors.New("deposit offer not found")
 	ErrInvalidSignature      = errors.New("invalid signature")
 	ErrNoAliasFound          = errors.New("no alias found for given address")
+	ErrAddressesSigsMismatch = errors.New("number of addresses does not match number of signatures")
 )
 
 func NewDepositOfferService(config *util.Config, dao dao.DepositOfferDao, nodeService NodeService) DepositOfferService {
@@ -54,20 +55,14 @@ func NewDepositOfferService(config *util.Config, dao dao.DepositOfferDao, nodeSe
 	}
 }
 
-func (s *depositOfferService) AddSignature(args *dto.AddSignatureArgs) error {
+func (s *depositOfferService) AddSignatures(args *dto.AddSignatureArgs) error {
+	if len(args.Addresses) != len(args.Signatures) {
+		return ErrAddressesSigsMismatch
+	}
+
 	id, err := ids.FromString(args.DepositOfferID)
 	if err != nil {
 		return ErrParsingDepositOfferID
-	}
-	addr, err := ids.ShortFromString(args.Address)
-	if err != nil {
-		return ErrParsingAddress
-	}
-	signatureArgs := append(id[:], addr[:]...)
-
-	signer, err := s.getAddressFromSignature(signatureArgs, args.Signature)
-	if err != nil {
-		return ErrParsingSignature
 	}
 
 	// if no timestamp is provided, use current time
@@ -77,6 +72,9 @@ func (s *depositOfferService) AddSignature(args *dto.AddSignatureArgs) error {
 	}
 
 	reply, err := s.nodeService.GetAllDepositOffers(&platformvm.GetAllDepositOffersArgs{Timestamp: t})
+	if err != nil {
+		return err
+	}
 	var depositOffer *platformvm.APIDepositOffer
 	for _, do := range reply.DepositOffers {
 		if do.ID == id {
@@ -87,10 +85,24 @@ func (s *depositOfferService) AddSignature(args *dto.AddSignatureArgs) error {
 	if depositOffer == nil {
 		return ErrDepositOfferNotFound
 	}
-	if depositOffer.OwnerAddress != signer {
-		return ErrInvalidSignature
+
+	for i, a := range args.Addresses {
+		addr, err := ids.ShortFromString(a)
+		if err != nil {
+			return ErrParsingAddress
+		}
+		signatureArgs := append(id[:], addr[:]...)
+		signer, err := s.getAddressFromSignature(signatureArgs, args.Signatures[i])
+		if err != nil {
+			return ErrParsingSignature
+		}
+		if depositOffer.OwnerAddress != signer {
+			return ErrInvalidSignature
+		}
+
 	}
-	err = s.dao.AddSignature(args.DepositOfferID, args.Address, args.Signature)
+
+	err = s.dao.AddSignatures(args.DepositOfferID, args.Addresses, args.Signatures)
 	if err != nil {
 		return err
 	}

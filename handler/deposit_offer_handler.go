@@ -52,7 +52,7 @@ func (h *depositOfferHandler) AddSignature(ctx *gin.Context) {
 		return
 	}
 
-	err = h.DepositOfferService.AddSignature(args)
+	err = h.DepositOfferService.AddSignatures(args)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest,
 			&dto.SignavaultError{

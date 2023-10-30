@@ -22,8 +22,8 @@ func TestDepositOfferHandlerAddSignature(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockDepositOfferService := service.NewMockDepositOfferService(ctrl)
 
-	mockDepositOfferService.EXPECT().AddSignature(gomock.Any()).Return(nil).Times(1)
-	mockDepositOfferService.EXPECT().AddSignature(gomock.Any()).Return(fmt.Errorf("error")).Times(1)
+	mockDepositOfferService.EXPECT().AddSignatures(gomock.Any()).Return(nil).Times(1)
+	mockDepositOfferService.EXPECT().AddSignatures(gomock.Any()).Return(fmt.Errorf("error")).Times(1)
 
 	type fields struct {
 		DepositOfferService service.DepositOfferService
@@ -50,7 +50,7 @@ func TestDepositOfferHandlerAddSignature(t *testing.T) {
 				},
 				sigArgs: &dto.AddSignatureArgs{
 					DepositOfferID: "1",
-					Address:        "0x123",
+					Addresses:      []string{"0x123"},
 				},
 			},
 			err: dto.SignavaultError{
@@ -69,8 +69,8 @@ func TestDepositOfferHandlerAddSignature(t *testing.T) {
 				},
 				sigArgs: &dto.AddSignatureArgs{
 					DepositOfferID: "1",
-					Address:        "0x123",
-					Signature:      "0x123",
+					Addresses:      []string{"0x123"},
+					Signatures:     []string{"0x123"},
 				},
 			},
 		},
@@ -86,8 +86,8 @@ func TestDepositOfferHandlerAddSignature(t *testing.T) {
 				},
 				sigArgs: &dto.AddSignatureArgs{
 					DepositOfferID: "1",
-					Address:        "0x123",
-					Signature:      "0x123",
+					Addresses:      []string{"0x123"},
+					Signatures:     []string{"0x123"},
 				},
 			},
 			err: dto.SignavaultError{

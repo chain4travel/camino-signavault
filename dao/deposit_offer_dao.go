@@ -10,7 +10,7 @@ import (
 var _ DepositOfferDao = (*depositOfferDao)(nil)
 
 type DepositOfferDao interface {
-	AddSignature(depositOfferID, address, signature string) error
+	AddSignatures(depositOfferID string, addresses, signatures []string) error
 	GetSignatures(address string) (*[]model.DepositOfferSig, error)
 }
 type depositOfferDao struct {
@@ -22,19 +22,31 @@ func NewDepositOfferDao(db *db.Db) DepositOfferDao {
 		db: db,
 	}
 }
-func (d *depositOfferDao) AddSignature(depositOfferID, address, signature string) error {
+func (d *depositOfferDao) AddSignatures(depositOfferID string, addresses []string, signatures []string) error {
 	tx, err := d.db.Begin()
 	if err != nil {
 		return err
 	}
 
-	_, err = tx.Exec("INSERT INTO deposit_offer_sigs (deposit_offer_id, address, signature) VALUES (?, ?, ?)", depositOfferID, address, signature)
+	stmt, err := tx.Prepare("INSERT INTO deposit_offer_sigs (deposit_offer_id, address, signature) VALUES (?, ?, ?)")
 	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			log.Printf("Execute statement failed: %v, unable to rollback: %v", err, rollbackErr)
-		}
-		log.Print(err)
 		return err
+	}
+
+	defer func() {
+		if err != nil {
+			if rollbackErr := tx.Rollback(); rollbackErr != nil {
+				log.Printf("Execute statement failed: %v, unable to rollback: %v", err, rollbackErr)
+			}
+			log.Print(err)
+		}
+	}()
+
+	for i, address := range addresses {
+		_, err = stmt.Exec(depositOfferID, address, signatures[i])
+		if err != nil {
+			return err
+		}
 	}
 
 	err = tx.Commit()
@@ -51,7 +63,6 @@ func (d *depositOfferDao) GetSignatures(address string) (*[]model.DepositOfferSi
 
 	var rows *sql.Rows
 	query := "SELECT sigs.deposit_offer_id, " +
-		"sigs.address, " +
 		"sigs.signature " +
 		"FROM deposit_offer_sigs AS sigs " +
 		"WHERE sigs.address=?"
