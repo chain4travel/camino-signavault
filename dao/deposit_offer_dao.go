@@ -14,21 +14,23 @@ type DepositOfferDao interface {
 	GetSignatures(address string) (*[]model.DepositOfferSig, error)
 }
 type depositOfferDao struct {
-	db *db.Db
+	db             *db.Db
+	preparedInsert *sql.Stmt
 }
 
 func NewDepositOfferDao(db *db.Db) DepositOfferDao {
-	return &depositOfferDao{
-		db: db,
+	stmt, err := db.Prepare("INSERT INTO deposit_offer_sigs (deposit_offer_id, address, signature) VALUES (?, ?, ?)")
+	if err != nil {
+		log.Fatal(err)
 	}
+	return &depositOfferDao{
+		db:             db,
+		preparedInsert: stmt,
+	}
+
 }
 func (d *depositOfferDao) AddSignatures(depositOfferID string, addresses []string, signatures []string) error {
 	tx, err := d.db.Begin()
-	if err != nil {
-		return err
-	}
-
-	stmt, err := tx.Prepare("INSERT INTO deposit_offer_sigs (deposit_offer_id, address, signature) VALUES (?, ?, ?)")
 	if err != nil {
 		return err
 	}
@@ -43,7 +45,7 @@ func (d *depositOfferDao) AddSignatures(depositOfferID string, addresses []strin
 	}()
 
 	for i, address := range addresses {
-		_, err = stmt.Exec(depositOfferID, address, signatures[i])
+		_, err = d.preparedInsert.Exec(depositOfferID, address, signatures[i])
 		if err != nil {
 			return err
 		}
