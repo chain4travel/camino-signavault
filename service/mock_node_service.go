@@ -8,6 +8,7 @@ import (
 	reflect "reflect"
 
 	ids "github.com/ava-labs/avalanchego/ids"
+	platformvm "github.com/ava-labs/avalanchego/vms/platformvm"
 	model "github.com/chain4travel/camino-signavault/model"
 	gomock "github.com/golang/mock/gomock"
 )
@@ -33,6 +34,21 @@ func NewMockNodeService(ctrl *gomock.Controller) *MockNodeService {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockNodeService) EXPECT() *MockNodeServiceMockRecorder {
 	return m.recorder
+}
+
+// GetAllDepositOffers mocks base method.
+func (m *MockNodeService) GetAllDepositOffers(arg0 *platformvm.GetAllDepositOffersArgs) (*platformvm.GetAllDepositOffersReply, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAllDepositOffers", arg0)
+	ret0, _ := ret[0].(*platformvm.GetAllDepositOffersReply)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAllDepositOffers indicates an expected call of GetAllDepositOffers.
+func (mr *MockNodeServiceMockRecorder) GetAllDepositOffers(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllDepositOffers", reflect.TypeOf((*MockNodeService)(nil).GetAllDepositOffers), arg0)
 }
 
 // GetMultisigAlias mocks base method.
