@@ -1,3 +1,5 @@
 github.com/chain4travel/camino-signavault/service=MultisigService=service/mock_multisig_service.go
+github.com/chain4travel/camino-signavault/service=DepositOfferService=service/mock_deposit_offer_service.go
 github.com/chain4travel/camino-signavault/service=NodeService=service/mock_node_service.go
 github.com/chain4travel/camino-signavault/dao=MultisigTxDao=dao/mock_multisig_tx_dao.go
+github.com/chain4travel/camino-signavault/dao=DepositOfferDao=dao/mock_deposit_offer_dao.go

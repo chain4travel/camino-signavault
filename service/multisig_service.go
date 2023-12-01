@@ -17,7 +17,7 @@ import (
 	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/constants"
-	"github.com/ava-labs/avalanchego/utils/crypto"
+	"github.com/ava-labs/avalanchego/utils/crypto/secp256k1"
 	"github.com/ava-labs/avalanchego/utils/formatting/address"
 	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ava-labs/avalanchego/vms/platformvm/txs"
@@ -28,16 +28,17 @@ import (
 )
 
 var (
-	ErrTxNotExists      = errors.New("multisig transaction does not exist")
-	ErrEmptySignature   = errors.New("signature is empty")
-	ErrParsingSignature = errors.New("failed to retrieve address from signature")
-	ErrAddressNotOwner  = errors.New("address is not an owner for this alias")
-	ErrOwnerHasSigned   = errors.New("owner has already signed this alias")
-	ErrThresholdParsing = errors.New("threshold is not a number")
-	ErrParsingTx        = errors.New("error parsing signed tx")
-	ErrPendingTx        = errors.New("there is already a pending tx for this alias")
-	ErrExpired          = errors.New("expiration date has passed")
-	ErrParsingChainId   = errors.New("error parsing chain id")
+	ErrTxNotExists              = errors.New("multisig transaction does not exist")
+	ErrEmptySignature           = errors.New("signature is empty")
+	ErrParsingSignature         = errors.New("failed to retrieve address from signature")
+	ErrAddressNotOwner          = errors.New("address is not an owner for this alias")
+	ErrOwnerHasSigned           = errors.New("owner has already signed this alias")
+	ErrThresholdParsing         = errors.New("threshold is not a number")
+	ErrParsingTx                = errors.New("error parsing signed tx")
+	ErrPendingTx                = errors.New("there is already a pending tx for this alias")
+	ErrExpired                  = errors.New("expiration date has passed")
+	ErrParsingChainId           = errors.New("error parsing chain id")
+	ErrCannotUpdateNonExpiredTx = errors.New("cannot update non-expired tx")
 )
 
 const (
@@ -57,11 +58,13 @@ type MultisigService interface {
 	SignMultisigTx(id string, signer *dto.SignTxArgs) (*model.MultisigTx, error)
 	IssueMultisigTx(issueTxArgs *dto.IssueTxArgs) (ids.ID, error)
 	CancelMultisigTx(cancelTxArgs *dto.CancelTxArgs) error
+
+	updateExpiredMultisigTx(t time.Time, model *model.MultisigTx) (string, error)
 }
 
 type multisigService struct {
 	config      *util.Config
-	secpFactory crypto.FactorySECP256K1R
+	secpFactory secp256k1.Factory
 	dao         dao.MultisigTxDao
 	nodeService NodeService
 }
@@ -69,8 +72,8 @@ type multisigService struct {
 func NewMultisigService(config *util.Config, dao dao.MultisigTxDao, nodeService NodeService) MultisigService {
 	return &multisigService{
 		config: config,
-		secpFactory: crypto.FactorySECP256K1R{
-			Cache: cache.LRU{Size: defaultCacheSize},
+		secpFactory: secp256k1.Factory{
+			Cache: cache.LRU[ids.ID, *secp256k1.PublicKey]{Size: defaultCacheSize},
 		},
 		dao:         dao,
 		nodeService: nodeService,
@@ -166,12 +169,31 @@ func (s *multisigService) CreateMultisigTx(multisigTxArgs *dto.MultisigTxArgs) (
 		Owners:            multisigTxOwners,
 		ParentTransaction: parentTransaction,
 	}
-	_, err = s.dao.CreateMultisigTx(&multisigTx)
 
+	// if tx already exists and is expired, update it
+	if tx, e := s.GetMultisigTxIgnoreState(id); e == nil {
+		log.Printf("An identical expired tx (id=%s) has been found and will be archived.\n", id)
+		_, err = s.updateExpiredMultisigTx(now, tx)
+		if err != nil {
+			return nil, err
+		}
+	}
+	_, err = s.dao.CreateMultisigTx(&multisigTx)
 	if err != nil {
 		return nil, err
 	}
 	return s.GetMultisigTx(id)
+}
+
+func (s *multisigService) updateExpiredMultisigTx(now time.Time, multisigTx *model.MultisigTx) (string, error) {
+	if multisigTx.Expiration != nil && multisigTx.Expiration.After(now) {
+		return "", ErrCannotUpdateNonExpiredTx
+	}
+	newId := multisigTx.Expiration.Format("2006-01-02T15:04:05") + "_" + multisigTx.Id
+
+	log.Printf("New id '%s' generated for expired tx with old id = %s", newId, multisigTx.Id)
+	// update multisig_tx id
+	return newId, s.dao.DeleteTxOwnersAndUpdateID(multisigTx.Id, newId)
 }
 
 func (s *multisigService) GetAllMultisigTxForAlias(alias string, timestamp string, signature string) (*[]model.MultisigTx, error) {
@@ -181,7 +203,7 @@ func (s *multisigService) GetAllMultisigTxForAlias(alias string, timestamp strin
 		return nil, ErrParsingSignature
 	}
 
-	tx, err := s.dao.GetMultisigTx("", alias, owner)
+	tx, err := s.dao.GetMultisigTx("", alias, owner, true)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't get txs for alias %s: %w", alias, err)
 	}
@@ -194,7 +216,13 @@ func (s *multisigService) GetAllMultisigTxForAlias(alias string, timestamp strin
 }
 
 func (s *multisigService) GetMultisigTx(id string) (*model.MultisigTx, error) {
-	tx, err := s.dao.GetMultisigTx(id, "", "")
+	return s.getMultisigTxForState(id, true)
+}
+func (s *multisigService) GetMultisigTxIgnoreState(id string) (*model.MultisigTx, error) {
+	return s.getMultisigTxForState(id, false)
+}
+func (s *multisigService) getMultisigTxForState(id string, activeOnly bool) (*model.MultisigTx, error) {
+	tx, err := s.dao.GetMultisigTx(id, "", "", activeOnly)
 	if err != nil {
 		return nil, err
 	}
@@ -379,7 +407,7 @@ func (s *multisigService) getChainId(txHexString string) (string, error) {
 		return "", ErrParsingChainId
 	}
 	var baseTx = txs.BaseTx{}
-	baseTx.Initialize(unsignedTx.Bytes())
+	baseTx.SetBytes(unsignedTx.Bytes())
 	blockchainID := baseTx.BlockchainID
 
 	return blockchainID.String(), nil

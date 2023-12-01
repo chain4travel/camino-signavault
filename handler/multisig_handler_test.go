@@ -28,6 +28,7 @@ import (
 func TestCreateMultisigTx(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockMultisigService := service.NewMockMultisigService(ctrl)
+
 	h := NewMultisigHandler(mockMultisigService)
 
 	mock := &model.MultisigTx{
