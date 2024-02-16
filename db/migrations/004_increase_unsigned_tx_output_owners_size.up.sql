@@ -1,0 +1,2 @@
+ALTER TABLE multisig_tx MODIFY unsigned_tx VARCHAR(32768) CHARACTER SET ascii;
+ALTER TABLE multisig_tx MODIFY output_owners VARCHAR(16384) CHARACTER SET ascii;
