@@ -4,7 +4,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/utils/crypto/secp256k1"
@@ -30,7 +29,6 @@ type DepositOfferService interface {
 
 type depositOfferService struct {
 	config      *util.Config
-	secpFactory secp256k1.Factory
 	dao         dao.DepositOfferDao
 	nodeService NodeService
 }
@@ -46,10 +44,7 @@ var (
 
 func NewDepositOfferService(config *util.Config, dao dao.DepositOfferDao, nodeService NodeService) DepositOfferService {
 	return &depositOfferService{
-		config: config,
-		secpFactory: secp256k1.Factory{
-			Cache: cache.LRU[ids.ID, *secp256k1.PublicKey]{Size: defaultCacheSize},
-		},
+		config:      config,
 		dao:         dao,
 		nodeService: nodeService,
 	}
@@ -148,7 +143,7 @@ func (s *depositOfferService) getAddressFromSignature(signatureArgs []byte, sign
 	signatureArgsHash := hashing.ComputeHash256(signatureArgs)
 	signatureBytes := common.FromHex(signature)
 
-	pub, err := s.secpFactory.RecoverHashPublicKey(signatureArgsHash, signatureBytes)
+	pub, err := secp256k1.RecoverPublicKeyFromHash(signatureArgsHash, signatureBytes)
 	if err != nil {
 		return ids.ShortEmpty, err
 	}

@@ -14,7 +14,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/utils/crypto/secp256k1"
@@ -64,17 +63,13 @@ type MultisigService interface {
 
 type multisigService struct {
 	config      *util.Config
-	secpFactory secp256k1.Factory
 	dao         dao.MultisigTxDao
 	nodeService NodeService
 }
 
 func NewMultisigService(config *util.Config, dao dao.MultisigTxDao, nodeService NodeService) MultisigService {
 	return &multisigService{
-		config: config,
-		secpFactory: secp256k1.Factory{
-			Cache: cache.LRU[ids.ID, *secp256k1.PublicKey]{Size: defaultCacheSize},
-		},
+		config:      config,
 		dao:         dao,
 		nodeService: nodeService,
 	}
@@ -271,7 +266,7 @@ func (s *multisigService) IssueMultisigTx(sendTxArgs *dto.IssueTxArgs) (ids.ID, 
 		return ids.Empty, err
 	}
 
-	utxBytes, _ := txs.Codec.Marshal(txs.Version, codecWrapper{tx.Unsigned})
+	utxBytes, _ := txs.Codec.Marshal(txs.CodecVersion, codecWrapper{tx.Unsigned})
 	utxHash := hashing.ComputeHash256(utxBytes)
 	utxHashStr := fmt.Sprintf("%x", utxHash)
 
@@ -290,7 +285,7 @@ func (s *multisigService) IssueMultisigTx(sendTxArgs *dto.IssueTxArgs) (ids.ID, 
 		return ids.Empty, ErrAddressNotOwner
 	}
 
-	signedBytes, err := txs.Codec.Marshal(txs.Version, tx)
+	signedBytes, err := txs.Codec.Marshal(txs.CodecVersion, tx)
 	if err != nil {
 		return ids.Empty, ErrParsingTx
 	}
@@ -370,7 +365,7 @@ func (s *multisigService) getAddressFromSignature(signatureArgs string, signatur
 	signatureArgsHash := hashing.ComputeHash256(signatureArgsBytes)
 	signatureBytes := common.FromHex(signature)
 
-	pub, err := s.secpFactory.RecoverHashPublicKey(signatureArgsHash, signatureBytes)
+	pub, err := secp256k1.RecoverPublicKeyFromHash(signatureArgsHash, signatureBytes)
 	if err != nil {
 		return "", err
 	}
