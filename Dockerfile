@@ -1,5 +1,5 @@
 # Create base builder image
-FROM golang:1.18.10-alpine3.17 AS builder
+FROM golang:1.20-alpine AS builder
 WORKDIR /go/src/github.com/chain4travel/camino-signavault
 RUN apk add --no-cache alpine-sdk bash git make gcc musl-dev linux-headers git ca-certificates g++ libstdc++
 
