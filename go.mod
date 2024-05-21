@@ -1,6 +1,6 @@
 module github.com/chain4travel/camino-signavault
 
-go 1.18
+go 1.20
 
 require (
 	github.com/ava-labs/avalanchego v1.9.4-rc.7
