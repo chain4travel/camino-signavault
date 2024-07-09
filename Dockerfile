@@ -5,6 +5,8 @@ RUN apk add --no-cache alpine-sdk bash git make gcc musl-dev linux-headers git c
 
 # Build app
 COPY . .
+ENV CGO_CFLAGS="-O -D__BLST_PORTABLE__" 
+ENV CGO_CFLAGS_ALLOW="-O -D__BLST_PORTABLE__"
 RUN if [ -d "./vendor" ];then export MOD=vendor; else export MOD=mod; fi && \
     GOOS=linux GOARCH=amd64 go build -mod=$MOD -o /opt/camino-signavault ./cmd/camino-signavault/*.go
 
