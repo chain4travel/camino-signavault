@@ -21,8 +21,8 @@ import (
 	"github.com/chain4travel/camino-signavault/model"
 	"github.com/chain4travel/camino-signavault/service"
 	"github.com/gin-gonic/gin"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 func TestCreateMultisigTx(t *testing.T) {

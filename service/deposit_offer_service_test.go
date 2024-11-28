@@ -6,6 +6,9 @@
 package service
 
 import (
+	"reflect"
+	"testing"
+
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/vms/platformvm"
 	"github.com/chain4travel/camino-signavault/dao"
@@ -15,10 +18,8 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
-	"reflect"
-	"testing"
+	"go.uber.org/mock/gomock"
 )
 
 func TestAddSignatures(t *testing.T) {
