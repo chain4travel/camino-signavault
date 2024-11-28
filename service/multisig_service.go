@@ -62,9 +62,10 @@ type MultisigService interface {
 }
 
 type multisigService struct {
-	config      *util.Config
-	dao         dao.MultisigTxDao
-	nodeService NodeService
+	config           *util.Config
+	dao              dao.MultisigTxDao
+	nodeService      NodeService
+	secp256k1Factory secp256k1.Factory
 }
 
 func NewMultisigService(config *util.Config, dao dao.MultisigTxDao, nodeService NodeService) MultisigService {
@@ -266,7 +267,7 @@ func (s *multisigService) IssueMultisigTx(sendTxArgs *dto.IssueTxArgs) (ids.ID, 
 		return ids.Empty, err
 	}
 
-	utxBytes, _ := txs.Codec.Marshal(txs.CodecVersion, codecWrapper{tx.Unsigned})
+	utxBytes, _ := txs.Codec.Marshal(txs.Version, codecWrapper{tx.Unsigned})
 	utxHash := hashing.ComputeHash256(utxBytes)
 	utxHashStr := fmt.Sprintf("%x", utxHash)
 
@@ -285,7 +286,7 @@ func (s *multisigService) IssueMultisigTx(sendTxArgs *dto.IssueTxArgs) (ids.ID, 
 		return ids.Empty, ErrAddressNotOwner
 	}
 
-	signedBytes, err := txs.Codec.Marshal(txs.CodecVersion, tx)
+	signedBytes, err := txs.Codec.Marshal(txs.Version, tx)
 	if err != nil {
 		return ids.Empty, ErrParsingTx
 	}
@@ -365,7 +366,7 @@ func (s *multisigService) getAddressFromSignature(signatureArgs string, signatur
 	signatureArgsHash := hashing.ComputeHash256(signatureArgsBytes)
 	signatureBytes := common.FromHex(signature)
 
-	pub, err := secp256k1.RecoverPublicKeyFromHash(signatureArgsHash, signatureBytes)
+	pub, err := s.secp256k1Factory.RecoverHashPublicKey(signatureArgsHash, signatureBytes)
 	if err != nil {
 		return "", err
 	}

@@ -4,18 +4,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/chain4travel/camino-signavault/dto"
-	"github.com/chain4travel/camino-signavault/model"
-	"github.com/chain4travel/camino-signavault/service"
-	"github.com/gin-gonic/gin"
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/chain4travel/camino-signavault/dto"
+	"github.com/chain4travel/camino-signavault/model"
+	"github.com/chain4travel/camino-signavault/service"
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 func TestDepositOfferHandlerAddSignature(t *testing.T) {

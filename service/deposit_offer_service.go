@@ -28,9 +28,10 @@ type DepositOfferService interface {
 }
 
 type depositOfferService struct {
-	config      *util.Config
-	dao         dao.DepositOfferDao
-	nodeService NodeService
+	config           *util.Config
+	dao              dao.DepositOfferDao
+	nodeService      NodeService
+	secp256k1Factory secp256k1.Factory
 }
 
 var (
@@ -143,7 +144,7 @@ func (s *depositOfferService) getAddressFromSignature(signatureArgs []byte, sign
 	signatureArgsHash := hashing.ComputeHash256(signatureArgs)
 	signatureBytes := common.FromHex(signature)
 
-	pub, err := secp256k1.RecoverPublicKeyFromHash(signatureArgsHash, signatureBytes)
+	pub, err := s.secp256k1Factory.RecoverHashPublicKey(signatureArgsHash, signatureBytes)
 	if err != nil {
 		return ids.ShortEmpty, err
 	}

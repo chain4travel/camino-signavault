@@ -6,6 +6,10 @@
 package service
 
 import (
+	"reflect"
+	"testing"
+	"time"
+
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/chain4travel/camino-signavault/dao"
 	"github.com/chain4travel/camino-signavault/dto"
@@ -14,11 +18,8 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
-	"reflect"
-	"testing"
-	"time"
+	"go.uber.org/mock/gomock"
 )
 
 const networkId = uint32(1002)
