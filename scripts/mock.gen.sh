@@ -10,8 +10,8 @@ fi
 if ! command -v mockgen &> /dev/null
 then
   echo "mockgen not found, installing..."
-  # https://github.com/golang/mock
-  go install -v github.com/golang/mock/mockgen@v1.6.0
+  # https://go.uber.org/mock/gomock
+  go install -v go.uber.org/mock/mockgen@v0.4.0
 fi
 
 # tuples of (source interface import path, comma-separated interface names, output file path)

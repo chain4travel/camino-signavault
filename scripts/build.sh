@@ -9,4 +9,10 @@ OUTPUT="signavault"
 
 echo "Building signavault..."
 go build -o "$OUTPUT" cmd/camino-signavault/main.go
-echo "SUCCESS"
+if [[ -f "$OUTPUT" ]]; then
+    echo "Build Successful"
+    exit 0
+else
+    echo "Build failure" >&2
+    exit 1
+fi

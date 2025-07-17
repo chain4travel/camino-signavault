@@ -14,7 +14,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/utils/crypto/secp256k1"
@@ -63,18 +62,15 @@ type MultisigService interface {
 }
 
 type multisigService struct {
-	config      *util.Config
-	secpFactory secp256k1.Factory
-	dao         dao.MultisigTxDao
-	nodeService NodeService
+	config           *util.Config
+	dao              dao.MultisigTxDao
+	nodeService      NodeService
+	secp256k1Factory secp256k1.Factory
 }
 
 func NewMultisigService(config *util.Config, dao dao.MultisigTxDao, nodeService NodeService) MultisigService {
 	return &multisigService{
-		config: config,
-		secpFactory: secp256k1.Factory{
-			Cache: cache.LRU[ids.ID, *secp256k1.PublicKey]{Size: defaultCacheSize},
-		},
+		config:      config,
 		dao:         dao,
 		nodeService: nodeService,
 	}
@@ -370,7 +366,7 @@ func (s *multisigService) getAddressFromSignature(signatureArgs string, signatur
 	signatureArgsHash := hashing.ComputeHash256(signatureArgsBytes)
 	signatureBytes := common.FromHex(signature)
 
-	pub, err := s.secpFactory.RecoverHashPublicKey(signatureArgsHash, signatureBytes)
+	pub, err := s.secp256k1Factory.RecoverHashPublicKey(signatureArgsHash, signatureBytes)
 	if err != nil {
 		return "", err
 	}

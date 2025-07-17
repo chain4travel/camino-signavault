@@ -4,13 +4,10 @@ import (
 	"errors"
 	"time"
 
-	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/utils/crypto/secp256k1"
 	"github.com/ava-labs/avalanchego/utils/hashing"
-	"github.com/ava-labs/avalanchego/utils/json"
-	"github.com/ava-labs/avalanchego/vms/platformvm"
 	"github.com/chain4travel/camino-signavault/dao"
 	"github.com/chain4travel/camino-signavault/dto"
 	"github.com/chain4travel/camino-signavault/model"
@@ -29,10 +26,10 @@ type DepositOfferService interface {
 }
 
 type depositOfferService struct {
-	config      *util.Config
-	secpFactory secp256k1.Factory
-	dao         dao.DepositOfferDao
-	nodeService NodeService
+	config           *util.Config
+	dao              dao.DepositOfferDao
+	nodeService      NodeService
+	secp256k1Factory secp256k1.Factory
 }
 
 var (
@@ -46,10 +43,7 @@ var (
 
 func NewDepositOfferService(config *util.Config, dao dao.DepositOfferDao, nodeService NodeService) DepositOfferService {
 	return &depositOfferService{
-		config: config,
-		secpFactory: secp256k1.Factory{
-			Cache: cache.LRU[ids.ID, *secp256k1.PublicKey]{Size: defaultCacheSize},
-		},
+		config:      config,
 		dao:         dao,
 		nodeService: nodeService,
 	}
@@ -66,24 +60,14 @@ func (s *depositOfferService) AddSignatures(args *dto.AddSignatureArgs) error {
 	}
 
 	// if no timestamp is provided, use current time
-	t := json.Uint64(time.Now().Unix())
+	t := time.Now().Unix()
 	if args.Timestamp != 0 {
-		t = json.Uint64(args.Timestamp)
+		t = args.Timestamp
 	}
 
-	reply, err := s.nodeService.GetAllDepositOffers(&platformvm.GetAllDepositOffersArgs{Timestamp: t})
+	offer, err := s.nodeService.GetDepositOffer(id, t)
 	if err != nil {
 		return err
-	}
-	var depositOffer *platformvm.APIDepositOffer
-	for _, do := range reply.DepositOffers {
-		if do.ID == id {
-			depositOffer = do
-			break
-		}
-	}
-	if depositOffer == nil {
-		return ErrDepositOfferNotFound
 	}
 
 	for i, a := range args.Addresses {
@@ -96,7 +80,7 @@ func (s *depositOfferService) AddSignatures(args *dto.AddSignatureArgs) error {
 		if err != nil {
 			return ErrParsingSignature
 		}
-		if depositOffer.OwnerAddress != signer {
+		if offer.OwnerAddress != signer {
 			return ErrInvalidSignature
 		}
 
@@ -148,7 +132,7 @@ func (s *depositOfferService) getAddressFromSignature(signatureArgs []byte, sign
 	signatureArgsHash := hashing.ComputeHash256(signatureArgs)
 	signatureBytes := common.FromHex(signature)
 
-	pub, err := s.secpFactory.RecoverHashPublicKey(signatureArgsHash, signatureBytes)
+	pub, err := s.secp256k1Factory.RecoverHashPublicKey(signatureArgsHash, signatureBytes)
 	if err != nil {
 		return ids.ShortEmpty, err
 	}
