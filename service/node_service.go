@@ -16,7 +16,9 @@ import (
 	"strings"
 
 	"github.com/ava-labs/avalanchego/ids"
+	utilsjson "github.com/ava-labs/avalanchego/utils/json"
 	"github.com/ava-labs/avalanchego/vms/platformvm"
+	"github.com/ava-labs/avalanchego/vms/platformvm/deposit"
 
 	"github.com/chain4travel/camino-signavault/model"
 	"github.com/chain4travel/camino-signavault/util"
@@ -27,7 +29,8 @@ var errAliasInfoNotFound = errors.New("could not find address info from node - a
 type NodeService interface {
 	GetMultisigAlias(alias string) (*model.AliasInfo, error)
 	IssueTx(txBytes []byte) (ids.ID, error)
-	GetAllDepositOffers(args *platformvm.GetAllDepositOffersArgs) (*platformvm.GetAllDepositOffersReply, error)
+	GetAllDepositOffers(args *platformvm.GetAllDepositOffersArgs) ([]*deposit.Offer, error)
+	GetDepositOffer(offerID ids.ID, timestamp int64) (*deposit.Offer, error)
 }
 
 type nodeService struct {
@@ -82,8 +85,21 @@ func (s *nodeService) IssueTx(txBytes []byte) (ids.ID, error) {
 	return s.client.IssueTx(context.Background(), txBytes)
 }
 
-func (s *nodeService) GetAllDepositOffers(args *platformvm.GetAllDepositOffersArgs) (*platformvm.GetAllDepositOffersReply, error) {
+func (s *nodeService) GetAllDepositOffers(args *platformvm.GetAllDepositOffersArgs) ([]*deposit.Offer, error) {
 	return s.client.GetAllDepositOffers(context.Background(), args)
+}
+
+func (s *nodeService) GetDepositOffer(offerID ids.ID, timestamp int64) (*deposit.Offer, error) {
+	offers, err := s.client.GetAllDepositOffers(context.Background(), &platformvm.GetAllDepositOffersArgs{Timestamp: utilsjson.Uint64(timestamp)})
+	if err != nil {
+		return nil, err
+	}
+	for _, offer := range offers {
+		if offer.ID == offerID {
+			return offer, nil
+		}
+	}
+	return nil, ErrDepositOfferNotFound
 }
 
 func (s *nodeService) unmarshal(data []byte, v interface{}) error {

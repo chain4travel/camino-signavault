@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/vms/platformvm"
+	"github.com/ava-labs/avalanchego/vms/platformvm/deposit"
 	"github.com/chain4travel/camino-signavault/dao"
 	"github.com/chain4travel/camino-signavault/dto"
 	"github.com/chain4travel/camino-signavault/model"
@@ -36,11 +36,11 @@ func TestAddSignatures(t *testing.T) {
 	require.NoError(t, err)
 	addr2, err := ids.ShortFromString("6Y3kysjF9jnHnYkdS9yGAuoHyae2eNmeV")
 	require.NoError(t, err)
-	offer := &platformvm.APIDepositOffer{
+	offer := &deposit.Offer{
 		ID:           offerID,
 		OwnerAddress: addr,
 	}
-	offer2 := &platformvm.APIDepositOffer{
+	offer2 := &deposit.Offer{
 		ID:           offerID,
 		OwnerAddress: addr2,
 	}
@@ -58,12 +58,9 @@ func TestAddSignatures(t *testing.T) {
 	// first time return mock
 	mockDao.EXPECT().AddSignatures(mockSig.DepositOfferID, mockSig.Addresses, mockSig.Signatures).Return(nil).Times(1)
 	mockDao.EXPECT().AddSignatures(mockMultipleSigs.DepositOfferID, mockMultipleSigs.Addresses, mockMultipleSigs.Signatures).Return(nil).Times(1)
-	mockNodeService.EXPECT().GetAllDepositOffers(gomock.Any()).
-		Return(&platformvm.GetAllDepositOffersReply{DepositOffers: []*platformvm.APIDepositOffer{offer}}, nil).Times(3)
-	mockNodeService.EXPECT().GetAllDepositOffers(gomock.Any()).
-		Return(&platformvm.GetAllDepositOffersReply{DepositOffers: []*platformvm.APIDepositOffer{offer2}}, nil).Times(2)
-	mockNodeService.EXPECT().GetAllDepositOffers(gomock.Any()).
-		Return(&platformvm.GetAllDepositOffersReply{DepositOffers: []*platformvm.APIDepositOffer{}}, nil).AnyTimes()
+	mockNodeService.EXPECT().GetDepositOffer(gomock.Any(), gomock.Any()).Return(offer, nil).Times(3)
+	mockNodeService.EXPECT().GetDepositOffer(gomock.Any(), gomock.Any()).Return(offer2, nil).Times(2)
+	mockNodeService.EXPECT().GetDepositOffer(gomock.Any(), gomock.Any()).Return(nil, ErrDepositOfferNotFound).AnyTimes()
 
 	tests := []struct {
 		name string

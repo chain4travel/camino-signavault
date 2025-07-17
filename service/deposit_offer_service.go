@@ -8,8 +8,6 @@ import (
 	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/utils/crypto/secp256k1"
 	"github.com/ava-labs/avalanchego/utils/hashing"
-	"github.com/ava-labs/avalanchego/utils/json"
-	"github.com/ava-labs/avalanchego/vms/platformvm"
 	"github.com/chain4travel/camino-signavault/dao"
 	"github.com/chain4travel/camino-signavault/dto"
 	"github.com/chain4travel/camino-signavault/model"
@@ -62,24 +60,14 @@ func (s *depositOfferService) AddSignatures(args *dto.AddSignatureArgs) error {
 	}
 
 	// if no timestamp is provided, use current time
-	t := json.Uint64(time.Now().Unix())
+	t := time.Now().Unix()
 	if args.Timestamp != 0 {
-		t = json.Uint64(args.Timestamp)
+		t = args.Timestamp
 	}
 
-	reply, err := s.nodeService.GetAllDepositOffers(&platformvm.GetAllDepositOffersArgs{Timestamp: t})
+	offer, err := s.nodeService.GetDepositOffer(id, t)
 	if err != nil {
 		return err
-	}
-	var depositOffer *platformvm.APIDepositOffer
-	for _, do := range reply.DepositOffers {
-		if do.ID == id {
-			depositOffer = do
-			break
-		}
-	}
-	if depositOffer == nil {
-		return ErrDepositOfferNotFound
 	}
 
 	for i, a := range args.Addresses {
@@ -92,7 +80,7 @@ func (s *depositOfferService) AddSignatures(args *dto.AddSignatureArgs) error {
 		if err != nil {
 			return ErrParsingSignature
 		}
-		if depositOffer.OwnerAddress != signer {
+		if offer.OwnerAddress != signer {
 			return ErrInvalidSignature
 		}
 

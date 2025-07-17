@@ -14,6 +14,7 @@ import (
 
 	ids "github.com/ava-labs/avalanchego/ids"
 	platformvm "github.com/ava-labs/avalanchego/vms/platformvm"
+	deposit "github.com/ava-labs/avalanchego/vms/platformvm/deposit"
 	model "github.com/chain4travel/camino-signavault/model"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -42,10 +43,10 @@ func (m *MockNodeService) EXPECT() *MockNodeServiceMockRecorder {
 }
 
 // GetAllDepositOffers mocks base method.
-func (m *MockNodeService) GetAllDepositOffers(arg0 *platformvm.GetAllDepositOffersArgs) (*platformvm.GetAllDepositOffersReply, error) {
+func (m *MockNodeService) GetAllDepositOffers(arg0 *platformvm.GetAllDepositOffersArgs) ([]*deposit.Offer, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAllDepositOffers", arg0)
-	ret0, _ := ret[0].(*platformvm.GetAllDepositOffersReply)
+	ret0, _ := ret[0].([]*deposit.Offer)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -54,6 +55,21 @@ func (m *MockNodeService) GetAllDepositOffers(arg0 *platformvm.GetAllDepositOffe
 func (mr *MockNodeServiceMockRecorder) GetAllDepositOffers(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllDepositOffers", reflect.TypeOf((*MockNodeService)(nil).GetAllDepositOffers), arg0)
+}
+
+// GetDepositOffer mocks base method.
+func (m *MockNodeService) GetDepositOffer(arg0 ids.ID, arg1 int64) (*deposit.Offer, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDepositOffer", arg0, arg1)
+	ret0, _ := ret[0].(*deposit.Offer)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDepositOffer indicates an expected call of GetDepositOffer.
+func (mr *MockNodeServiceMockRecorder) GetDepositOffer(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDepositOffer", reflect.TypeOf((*MockNodeService)(nil).GetDepositOffer), arg0, arg1)
 }
 
 // GetMultisigAlias mocks base method.
